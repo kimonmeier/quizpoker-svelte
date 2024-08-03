@@ -1,5 +1,5 @@
 import type { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
-import type { FragenPhase } from './ServerMessage';
+import type { FragenPhase } from './ServerMessage.ts';
 
 interface ConnectionSuccessEvent {
 	type: ClientEvents.CONNECTION_SUCCESS;

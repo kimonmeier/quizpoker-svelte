@@ -1,6 +1,6 @@
 import type { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
 import type { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
-import type { MemberAction } from './ClientMessage';
+import type { MemberAction } from './ClientMessage.ts';
 
 interface PingServerEvent {
 	type: ServerEvents.PING;
