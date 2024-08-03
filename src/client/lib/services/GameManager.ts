@@ -35,8 +35,8 @@ export class App {
 	}
 
 	public startApp(): void {
-		//this.client = new WebSocketClient("wss://gameshow.k-meier.ch/brainbattle/socket");
-		this.client = new WebSocketClient('ws://localhost:2224');
+		this.client = new WebSocketClient('wss://gameshow.k-meier.ch/mindpoker/socket');
+		//this.client = new WebSocketClient('ws://localhost:2224');
 
 		this.client.recieve = (m: ServerMessage) => this.recieve(m);
 	}
@@ -100,9 +100,9 @@ export class App {
 				isLoggedIn.set(true);
 
 				if (get(isGamemaster)) {
-					goto('gamemaster');
+					goto('mindpoker/gamemaster');
 				} else {
-					goto('play');
+					goto('mindpoker/play');
 				}
 				break;
 			case ServerEvents.UPDATED_MITGLIED_VALUES:
