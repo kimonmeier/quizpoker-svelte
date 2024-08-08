@@ -55,6 +55,13 @@ export class RoundManager {
 						phase: m.phase,
 						value: this.getTextByPhase(m.phase)
 					});
+
+					this.eventBus.dispatch({
+						event: {
+							type: 'PHASE-TRIGGERED',
+							payload: m.phase
+						}
+					});
 					break;
 				case GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING:
 					this.changeAutomaticPhase = m.activated;
