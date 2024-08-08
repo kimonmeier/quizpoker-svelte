@@ -11,7 +11,7 @@
 
 <div
 	class="{className} flex flex-row h-full {isAllIn
-		? 'bg-yellow-200'
+		? 'bg-yellow-500'
 		: isPleite
 			? 'bg-red-400'
 			: 'bg-gray-500'} text-right rounded-xl items-center px-2 shadow-sm shadow-black {isPleite
