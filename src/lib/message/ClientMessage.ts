@@ -82,6 +82,12 @@ interface GameMasterAnnounceWinner {
 	action: GameMasterAction.ANNOUNCE_WINNER;
 }
 
+interface GameMasterAutomaticPhaseChanging {
+	type: ClientEvents.GAME_MASTER_ACTION;
+	action: GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING;
+	activated: boolean;
+}
+
 export enum GameMasterAction {
 	CONTROLS_SELECTED,
 	START_GAME,
@@ -89,7 +95,8 @@ export enum GameMasterAction {
 	UPDATE_MEMBER,
 	PLAY_QUESTION,
 	CHANGE_PHASE,
-	ANNOUNCE_WINNER
+	ANNOUNCE_WINNER,
+	CHANGE_AUTOMATIC_PHASE_CHANGING
 }
 
 export enum MemberAction {
@@ -106,7 +113,8 @@ type GameMasterActionEvent =
 	| GameMasterActionWonGame
 	| GameMasterActionPlayQuestionEvent
 	| GameMasterChangePhase
-	| GameMasterAnnounceWinner;
+	| GameMasterAnnounceWinner
+	| GameMasterAutomaticPhaseChanging;
 type MemberActionEvent = MemberActionRaiseEvent | MemberActionNoValueEvent;
 
 export type ClientMessage =

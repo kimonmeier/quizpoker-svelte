@@ -16,6 +16,7 @@ export class RoundManager {
 
 	private frage: Frage | null = null;
 	private currentPhase: FragenPhase | null = null;
+	private changeAutomaticPhase: boolean = true;
 
 	public constructor(
 		connection: WebSocketConnection,
@@ -55,6 +56,9 @@ export class RoundManager {
 						value: this.getTextByPhase(m.phase)
 					});
 					break;
+				case GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING:
+					this.changeAutomaticPhase = m.activated;
+					break;
 			}
 		}
 	}
@@ -86,6 +90,10 @@ export class RoundManager {
 	}
 
 	private triggerNextPhase(): void {
+		if (!this.changeAutomaticPhase) {
+			console.log('Automatisches verändern wurde deaktiviert!');
+		}
+
 		let nextPhase: FragenPhase;
 		let value: string | undefined = undefined;
 

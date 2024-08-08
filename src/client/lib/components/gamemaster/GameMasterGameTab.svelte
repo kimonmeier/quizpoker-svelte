@@ -7,6 +7,7 @@
 	import { App } from '@client/lib/services/GameManager';
 	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
 	import { GameMasterAction } from '@poker-lib/message/ClientMessage';
+	import { gameMasterAutoChangePhase } from '@client/lib/stores/GameMasterStore';
 
 	function updatePhase() {
 		App.getInstance().sendMessage({
@@ -24,6 +25,14 @@
 		App.getInstance().sendMessage({
 			type: ClientEvents.GAME_MASTER_ACTION,
 			action: GameMasterAction.ANNOUNCE_WINNER
+		});
+	}
+
+	function toggelAutomaticPhaseChanging() {
+		App.getInstance().sendMessage({
+			type: ClientEvents.GAME_MASTER_ACTION,
+			action: GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING,
+			activated: $gameMasterAutoChangePhase
 		});
 	}
 </script>
@@ -58,5 +67,13 @@
 		>
 			Gewinner ziehen!
 		</button>
+		<br />
+		<label for="automaticPhaseChangeInput">Automatisches Wechseln der Phase</label>
+		<input
+			id="automaticPhaseChangeInput"
+			type="checkbox"
+			bind:value={$gameMasterAutoChangePhase}
+			on:blur={toggelAutomaticPhaseChanging}
+		/>
 	</GroupBox>
 </div>

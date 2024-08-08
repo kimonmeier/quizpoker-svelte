@@ -65,7 +65,7 @@
 	];
 </script>
 
-<div class="w-full h-full flex flex-row">
+<div class="w-full flex flex-row">
 	<div class="flex gap-5">
 		<button
 			class="bg-green-400 border-black rounded-3xl p-3"
