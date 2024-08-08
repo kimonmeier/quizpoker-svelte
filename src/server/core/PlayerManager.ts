@@ -83,21 +83,15 @@ export default class PlayerManager {
 				if (m.action != MemberAction.FOLD) {
 					break;
 				}
-				this.getPlayerByUuid(client.uuid).status = MemberStatus.FOLDED;
+				const player = this.getPlayerByUuid(client.uuid);
+				player.status = MemberStatus.FOLDED;
+				this.players.set(client, player);
+
 				this.connection.broadcast({
 					type: ServerEvents.UPDATED_MITGLIED_VALUES,
 					id: client.uuid,
 					status: MemberStatus.FOLDED
 				});
-
-				if (this.getPlayingPlayers().length == 1) {
-					this.eventBus.dispatch({
-						event: {
-							type: 'PLAYER-WON-ROUND',
-							payload: [this.getPlayingPlayers().at(0)!.client.uuid]
-						}
-					});
-				}
 				break;
 
 			case ClientEvents.GAME_MASTER_ACTION:
@@ -129,7 +123,7 @@ export default class PlayerManager {
 	public getPlayerByUuid(uuid: string): Player {
 		return this.players.get(
 			this.connection.clients.find((x) => x.uuid == uuid) as WebSocketClient
-		) as Player;
+		)!;
 	}
 
 	public getPlayers(): Player[] {
