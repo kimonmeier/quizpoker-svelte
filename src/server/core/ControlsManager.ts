@@ -96,6 +96,10 @@ export class ControlsManager {
 							break;
 						}
 
+						if (this.playerManager.getPlayingPlayers().length == 1) {
+							break;
+						}
+
 						this.givePlayerControls(this.getPlayerAfterBigBlind(), this.bigBlindId);
 				}
 				break;
@@ -148,6 +152,10 @@ export class ControlsManager {
 					payload: undefined
 				}
 			});
+			return;
+		}
+
+		if (this.playerManager.getPlayingPlayers().length == 1) {
 			return;
 		}
 
