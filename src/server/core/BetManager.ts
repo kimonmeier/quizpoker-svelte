@@ -156,7 +156,10 @@ export default class BetManager {
 
 	private anounceWinner(...wonPlayers: string[]): void {
 		if (wonPlayers.length == 1) {
-			this.playerManger.adjustChips(wonPlayers.at(0)!, this.getPot());
+			this.playerManger.adjustChips(
+				wonPlayers.at(0)!,
+				this.playerManger.getChips(wonPlayers.at(0)!) + this.getPot()
+			);
 			this.flushChips();
 			return;
 		}
