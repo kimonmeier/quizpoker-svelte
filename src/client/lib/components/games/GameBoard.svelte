@@ -6,7 +6,9 @@
 </script>
 
 <div class="w-full h-full grid grid-cols-3 grid-rows-5 gap-y-5 overflow-hidden py-5">
-	<VodNinjaWrapper url={$gameMasterUrl} class="m-auto" />
+	<div class="flex w-full h-full justify-center items-center">
+		<VodNinjaWrapper url={$gameMasterUrl} class="w-[90%] shadow-lg shadow-black rounded-b-2xl" />
+	</div>
 	<div
 		class="rounded-3xl bg-zinc-800 flex col-span-2 text-lg justify-center items-center shadow-lg shadow-black"
 	>
