@@ -55,7 +55,7 @@
 
 	onMount(() => {
 		if ($isLoggedIn) {
-			goto('mindpoker/play');
+			goto('play');
 		}
 
 		if ($page.url.searchParams.has('public')) {
@@ -67,7 +67,7 @@
 				$isLoggedIn = true;
 
 				tick().then(() => {
-					goto('mindpoker/public');
+					goto('public');
 				});
 			});
 		} else if ($page.url.searchParams.has('gamemaster')) {

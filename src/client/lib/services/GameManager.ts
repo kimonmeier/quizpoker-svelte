@@ -100,9 +100,9 @@ export class App {
 				isLoggedIn.set(true);
 
 				if (get(isGamemaster)) {
-					goto('mindpoker/gamemaster');
+					goto('gamemaster');
 				} else {
-					goto('mindpoker/play');
+					goto('play');
 				}
 				break;
 			case ServerEvents.UPDATED_MITGLIED_VALUES:
