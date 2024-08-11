@@ -106,11 +106,7 @@ export class ControlsManager {
 				}
 				break;
 			case ClientEvents.MITGLIED_ACTION:
-				this.moveControlsForward();
-
-				if (m.action == MemberAction.RAISE) {
-					this.lastPlayerToBet = client.uuid;
-				}
+				this.moveControlsForward(m.action == MemberAction.RAISE);
 				break;
 		}
 	}
@@ -139,10 +135,14 @@ export class ControlsManager {
 		this.currentPlayerInControl = null;
 	}
 
-	private moveControlsForward(): void {
+	private moveControlsForward(hasBetted: boolean): void {
 		let moveControlsForward = true;
 		if (this.lastPlayerToBet && this.lastPlayerToBet == this.currentPlayerInControl) {
 			moveControlsForward = false;
+		}
+
+		if (hasBetted) {
+			this.lastPlayerToBet = this.currentPlayerInControl;
 		}
 
 		const lastPlayerId = this.currentPlayerInControl;
