@@ -185,7 +185,11 @@ export default class BetManager {
 			}));
 
 		const sidePots: SidePot[] = SidePotHelper.calculateSidePots(players);
-		const result = SidePotHelper.distributeChips(sidePots, wonPlayers);
+		const result = SidePotHelper.distributeChips(
+			sidePots,
+			wonPlayers,
+			this.playerManger.getPlayingPlayers().map((x) => x.client.uuid)
+		);
 
 		result.forEach((result) => {
 			this.playerManger.adjustChips(

@@ -27,7 +27,8 @@ export abstract class SidePotHelper {
 
 	public static distributeChips(
 		sidePots: SidePot[],
-		winningPlayerIds: string[]
+		winningPlayerIds: string[],
+		playingPlayerId: string[]
 	): SidePotWinnerResult[] {
 		const results: { [playerId: string]: number } = {};
 
@@ -42,10 +43,22 @@ export abstract class SidePotHelper {
 					results[winner] = (results[winner] || 0) + chipsPerWinner;
 				}
 			} else {
-				// Handle side pots with no winners (distribute among all winners)
-				const chipsPerWinner = sidePot.totalAmount / winningPlayerIds.length;
-				for (const winner of winningPlayerIds) {
-					results[winner] = (results[winner] || 0) + chipsPerWinner;
+				const playingPlayersOfSidePot = sidePot.players.filter(
+					(x) => playingPlayerId.find((z) => z == x) != null
+				);
+
+				// Handle side pots with no winners and no playing pot payer (distribute to winner)
+				if (playingPlayersOfSidePot.length == 0) {
+					const chipsPerWinner = sidePot.totalAmount / winningPlayerIds.length;
+					for (const winner of winningPlayerIds) {
+						results[winner] = (results[winner] || 0) + chipsPerWinner;
+					}
+					// Handle side pots with no winner but the pot payer are still playing (giving back the coins)
+				} else {
+					const chipsPerPlayer = sidePot.totalAmount / playingPlayersOfSidePot.length;
+					for (const player in playingPlayersOfSidePot) {
+						results[player] = (results[player] || 0) + chipsPerPlayer;
+					}
 				}
 			}
 		}
