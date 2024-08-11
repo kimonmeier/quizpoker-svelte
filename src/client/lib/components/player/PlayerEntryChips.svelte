@@ -23,10 +23,10 @@
 	{/if}
 	<div class="text-center flex-grow">
 		{#if chips}
-			{#if isAllIn}
-				All-In
-			{:else if isPleite}
+			{#if isPleite}
 				Pleite
+			{:else if isAllIn}
+				All-In
 			{:else}
 				{(chips.chips - (chips.bet ?? 0)).toLocaleString()}
 			{/if}
