@@ -61,7 +61,7 @@
 	>
 		<GameBoard />
 	</div>
-	{#each $playerStore as player}
+	{#each $playerStore as player (player.id)}
 		<PlayerCard class="col-span-2 row-span-2" {player} />
 	{/each}
 
