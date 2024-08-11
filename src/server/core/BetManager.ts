@@ -60,7 +60,7 @@ export default class BetManager {
 				this.addBet({ player_id: m.memberId, bet: m.einsatz - this.getBetValues(m.memberId) });
 				break;
 			case ClientEvents.MITGLIED_ACTION:
-				if (m.action == MemberAction.CHECK || m.action == MemberAction.FOLD) {
+				if (m.action == MemberAction.FOLD) {
 					this.connection.broadcast({
 						type: ServerEvents.SHOW_TOAST,
 						playerId: client.uuid,
@@ -70,6 +70,17 @@ export default class BetManager {
 				}
 
 				const betValues = this.getBetValues(client.uuid);
+
+				if (m.action == MemberAction.CHECK && betValues < this.getBetValues(this.lastPlayer!)) {
+					m.action = MemberAction.CALL;
+				} else if (m.action == MemberAction.CHECK) {
+					this.connection.broadcast({
+						type: ServerEvents.SHOW_TOAST,
+						playerId: client.uuid,
+						action: m.action
+					});
+					break;
+				}
 
 				if (m.action == MemberAction.RAISE) {
 					this.addBet({ player_id: client.uuid, bet: m.valueTo - betValues });
