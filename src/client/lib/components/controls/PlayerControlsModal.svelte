@@ -125,7 +125,7 @@
 		<div class="flex flex-row w-full gap-5">
 			<button
 				class="disabled:bg-gray-700 bg-yellow-400 rounded-2xl flex-grow p-2"
-				disabled={(currentChips?.bet ?? 0) == $minimumBet - 50 || !hasControl}
+				disabled={(currentChips?.bet ?? 0) != $minimumBet - 50 || !hasControl}
 				on:click={check}
 			>
 				Check
