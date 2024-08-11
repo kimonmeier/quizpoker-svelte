@@ -56,9 +56,9 @@ export class App {
 			console.log('Neue Nachricht vo dem Client: ' + client.ip);
 			console.log(message);
 
+			this.betManager.handleInputs(client, message);
 			this.controlsManager.handleInputs(client, message);
 			this.playerManager.handleInputs(client, message);
-			this.betManager.handleInputs(client, message);
 			this.schaetzungManager.handleInputs(client, message);
 			this.roundManager.handleInputs(client, message);
 		});

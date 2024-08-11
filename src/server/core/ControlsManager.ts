@@ -117,6 +117,12 @@ export class ControlsManager {
 					this.lastPlayerToBet = client.uuid;
 				}
 
+				if (m.action === MemberAction.FOLD) {
+					this.playerManager.getPlayingPlayers().length == 2;
+					this.takePlayerControls();
+					return;
+				}
+
 				this.moveControlsForward();
 				break;
 		}
