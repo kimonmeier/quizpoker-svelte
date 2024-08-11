@@ -72,7 +72,7 @@
 		<input
 			id="automaticPhaseChangeInput"
 			type="checkbox"
-			bind:value={$gameMasterAutoChangePhase}
+			bind:checked={$gameMasterAutoChangePhase}
 			on:blur={toggelAutomaticPhaseChanging}
 		/>
 	</GroupBox>
