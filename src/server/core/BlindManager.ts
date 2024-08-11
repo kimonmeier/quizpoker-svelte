@@ -44,16 +44,14 @@ export class BlindManager {
 
 		const playingPlayers = this.playerManager.getPlayingPlayers();
 		if (this.bigBlindPlayerId == null && this.smallBlindPlayerId == null) {
-			this.bigBlindPlayerId = playingPlayers.at(playingPlayers.length - 1)!.client.uuid;
-			this.smallBlindPlayerId = playingPlayers.at(playingPlayers.length - 2)!.client.uuid;
+			this.bigBlindPlayerId = playingPlayers.at(1)!.client.uuid;
+			this.smallBlindPlayerId = playingPlayers.at(0)!.client.uuid;
 		} else {
-			const smallBlindIndex = playingPlayers.findIndex(
-				(x) => x.client.uuid == this.smallBlindPlayerId
-			);
+			const bigBlindIndex = playingPlayers.findIndex((x) => x.client.uuid == this.bigBlindPlayerId);
+			this.smallBlindPlayerId = this.bigBlindPlayerId!;
 
-			this.bigBlindPlayerId = this.smallBlindPlayerId!;
-			this.smallBlindPlayerId = (
-				playingPlayers.at(smallBlindIndex + 1) ?? playingPlayers.at(0)!
+			this.bigBlindPlayerId = (
+				playingPlayers.at(bigBlindIndex + 1) ?? playingPlayers.at(0)!
 			).client.uuid;
 		}
 
@@ -76,18 +74,10 @@ export class BlindManager {
 	}
 
 	public getBigBlind(): string {
-		return (
-			this.bigBlindPlayerId ??
-			this.playerManager.getPlayingPlayers().at(this.playerManager.getPlayingPlayers().length - 1)!
-				.client.uuid
-		);
+		return this.bigBlindPlayerId ?? this.playerManager.getPlayingPlayers().at(1)!.client.uuid;
 	}
 
 	public getSmallBlind(): string {
-		return (
-			this.smallBlindPlayerId ??
-			this.playerManager.getPlayingPlayers().at(this.playerManager.getPlayingPlayers().length - 2)!
-				.client.uuid
-		);
+		return this.smallBlindPlayerId ?? this.playerManager.getPlayingPlayers().at(0)!.client.uuid;
 	}
 }
