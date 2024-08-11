@@ -65,7 +65,7 @@ export class ControlsManager {
 				let nextPlayerId: string;
 				if (this.lastPlayerToBet == null) {
 					nextPlayerId = this.findNextPlayerId(this.bigBlindId!)!;
-					this.lastPlayerToBet = this.findPrevPlayerId(nextPlayerId)!;
+					this.lastPlayerToBet = nextPlayerId!;
 				} else {
 					nextPlayerId = this.lastPlayerToBet;
 				}
@@ -75,7 +75,7 @@ export class ControlsManager {
 				}
 
 				this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
-				this.currentPlayerInControl = this.findPrevPlayerId(this.lastPlayerToBet!)!;
+				this.lastPlayerToBet = nextPlayerId;
 			}
 		});
 	}
@@ -109,8 +109,11 @@ export class ControlsManager {
 							break;
 						}
 
-						this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
-						this.lastPlayerToBet = this.findPrevPlayerId(this.currentPlayerInControl!)!;
+						this.givePlayerControls(
+							this.findNextPlayerId(this.lastPlayerToBet!)!,
+							this.lastPlayerToBet!
+						);
+						this.lastPlayerToBet = this.currentPlayerInControl!;
 						break;
 				}
 				break;
@@ -146,17 +149,15 @@ export class ControlsManager {
 
 	private moveControlsForward(hasBetted: boolean): void {
 		let moveControlsForward = true;
-		if (this.lastPlayerToBet && this.lastPlayerToBet == this.currentPlayerInControl) {
-			if (this.lastPlayerAllIn) {
-				this.lastPlayerAllIn = false;
-			} else {
-				moveControlsForward = false;
-			}
+		if (
+			this.lastPlayerToBet &&
+			this.lastPlayerToBet == this.findNextPlayerId(this.currentPlayerInControl!)
+		) {
+			moveControlsForward = !hasBetted;
 		}
 
 		if (hasBetted) {
 			this.lastPlayerToBet = this.currentPlayerInControl;
-			moveControlsForward = true;
 		}
 
 		const lastPlayerId = this.currentPlayerInControl;
