@@ -23,6 +23,7 @@ export class ControlsManager {
 	private currentPlayerInControl: string | null = null;
 	private players: Map<string, number> = new Map();
 	private lastPlayerToBet: string | null = null;
+	private lastPlayerAllIn: boolean = false;
 	private bigBlindId: string | null = null;
 
 	public constructor(
@@ -53,6 +54,7 @@ export class ControlsManager {
 			event: 'PHASE-TRIGGERED',
 			listener: (event) => {
 				if (event.payload == FragenPhase.FRAGE) {
+					this.lastPlayerAllIn = false;
 					return;
 				}
 
@@ -100,7 +102,8 @@ export class ControlsManager {
 							break;
 						}
 
-						this.givePlayerControls(this.getPlayerAfterBigBlind(), this.bigBlindId);
+						const nextPlayerAfterBigBlind = this.findNextPlayerId(this.getPlayerAfterBigBlind())!;
+						this.givePlayerControls(nextPlayerAfterBigBlind, nextPlayerAfterBigBlind);
 
 						this.lastPlayerToBet = this.currentPlayerInControl;
 						break;
@@ -139,7 +142,11 @@ export class ControlsManager {
 	private moveControlsForward(hasBetted: boolean): void {
 		let moveControlsForward = true;
 		if (this.lastPlayerToBet && this.lastPlayerToBet == this.currentPlayerInControl) {
-			moveControlsForward = false;
+			if (this.lastPlayerAllIn) {
+				this.lastPlayerAllIn = false;
+			} else {
+				moveControlsForward = false;
+			}
 		}
 
 		if (hasBetted) {
@@ -167,6 +174,16 @@ export class ControlsManager {
 
 		if (!nextPlayerId) {
 			return;
+		}
+
+		if (hasBetted) {
+			if (
+				this.betManager.getBetValues(this.lastPlayerToBet!) ==
+				this.playerManager.getChips(this.lastPlayerToBet!)
+			) {
+				this.lastPlayerToBet = nextPlayerId;
+				this.lastPlayerAllIn = true;
+			}
 		}
 
 		this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
