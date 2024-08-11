@@ -104,10 +104,11 @@ export class ControlsManager {
 				}
 				break;
 			case ClientEvents.MITGLIED_ACTION:
+				this.moveControlsForward();
+
 				if (m.action == MemberAction.RAISE) {
 					this.lastPlayerToBet = client.uuid;
 				}
-				this.moveControlsForward();
 				break;
 		}
 	}
