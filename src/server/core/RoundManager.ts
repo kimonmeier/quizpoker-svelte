@@ -99,6 +99,7 @@ export class RoundManager {
 	private triggerNextPhase(): void {
 		if (!this.changeAutomaticPhase) {
 			console.log('Automatisches verändern wurde deaktiviert!');
+			return;
 		}
 
 		let nextPhase: FragenPhase;

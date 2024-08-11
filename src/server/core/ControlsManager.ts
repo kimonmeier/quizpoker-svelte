@@ -102,7 +102,8 @@ export class ControlsManager {
 
 						this.givePlayerControls(this.getPlayerAfterBigBlind(), this.bigBlindId);
 
-						this.lastPlayerToBet = this.getPlayerAfterBigBlind();
+						this.lastPlayerToBet = this.currentPlayerInControl;
+						break;
 				}
 				break;
 			case ClientEvents.MITGLIED_ACTION:
