@@ -2,10 +2,18 @@
 	import PlayerControlsModal from '@client/lib/components/controls/PlayerControlsModal.svelte';
 	import GameBoard from '@client/lib/components/games/GameBoard.svelte';
 	import PlayerCard from '@client/lib/components/player/PlayerCard.svelte';
+	import { App } from '@client/lib/services/GameManager';
+	import { isLoggedIn } from '@client/lib/stores/CredentialStore';
 	import { playerStore } from '@client/lib/stores/PlayerStore';
 	import Icon from '@iconify/svelte';
 
 	let steuerungVisible = false;
+
+	function beforeUnload(eventargs: BeforeUnloadEvent) {
+		if ($isLoggedIn) {
+			App.getInstance().stopApp();
+		}
+	}
 
 	function getAnzCols(playerLength: number): number {
 		if (playerLength > 5) {
@@ -33,6 +41,8 @@
 
 	$: playerLength = $playerStore.length;
 </script>
+
+<svelte:window on:beforeunload={beforeUnload} />
 
 <button
 	class="absolute z-0 w-12 h-12 top-0 left-0 hover:text-white text-transparent"
