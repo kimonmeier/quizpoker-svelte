@@ -75,6 +75,7 @@ export class ControlsManager {
 				}
 
 				this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
+				this.currentPlayerInControl = this.findPrevPlayerId(this.lastPlayerToBet!)!;
 			}
 		});
 	}
@@ -109,7 +110,7 @@ export class ControlsManager {
 						}
 
 						this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
-						this.lastPlayerToBet = this.currentPlayerInControl;
+						this.lastPlayerToBet = this.findPrevPlayerId(this.currentPlayerInControl!)!;
 						break;
 				}
 				break;
@@ -155,6 +156,7 @@ export class ControlsManager {
 
 		if (hasBetted) {
 			this.lastPlayerToBet = this.currentPlayerInControl;
+			moveControlsForward = true;
 		}
 
 		const lastPlayerId = this.currentPlayerInControl;
