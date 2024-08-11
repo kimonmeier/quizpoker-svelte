@@ -172,7 +172,7 @@ export class ControlsManager {
 			return;
 		}
 
-		const nextPlayerId = this.findNextPlayerId(this.lastPlayerToBet ?? this.bigBlindId!);
+		const nextPlayerId = this.findNextPlayerId(lastPlayerId ?? this.bigBlindId!);
 
 		if (!nextPlayerId) {
 			return;
@@ -190,34 +190,6 @@ export class ControlsManager {
 			let indexLastPlayer = playingPlayers.findIndex((x) => x.client.uuid == playerId) + 1;
 			if (indexLastPlayer >= playingPlayers.length) {
 				indexLastPlayer = 0;
-			}
-
-			playerId = playingPlayers.at(indexLastPlayer)?.client.uuid;
-
-			if (!playerId) {
-				console.log('Something went wrong, no player found');
-				return undefined;
-			}
-
-			count++;
-
-			if (count >= 30) {
-				return undefined;
-			}
-		} while (this.betManager.getBetValues(playerId) === this.playerManager.getChips(playerId));
-
-		return playerId;
-	}
-
-	private findPrevPlayerId(startId: string): string | undefined {
-		const playingPlayers = this.playerManager.getPlayingPlayers();
-
-		let count = 0;
-		let playerId: string | undefined | null = startId;
-		do {
-			let indexLastPlayer = playingPlayers.findIndex((x) => x.client.uuid == playerId) - 1;
-			if (indexLastPlayer < 0) {
-				indexLastPlayer = playingPlayers.length - 1;
 			}
 
 			playerId = playingPlayers.at(indexLastPlayer)?.client.uuid;
