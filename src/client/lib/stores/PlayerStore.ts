@@ -28,8 +28,7 @@ function createPlayerStore(): PlayerStore {
 		},
 		removePlayer: (playerId: string) => {
 			update((x) => {
-				x.filter((x) => x.id != playerId);
-				return x.sort((x) => StringHelper.hashCode(x.id));
+				return x.filter((x) => x.id != playerId).sort((x) => StringHelper.hashCode(x.id));
 			});
 
 			schaetzungStore.removePlayer(playerId);
