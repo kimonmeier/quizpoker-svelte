@@ -88,10 +88,24 @@ export default class SchaetzungManager {
 			throw new Error('Keine Antwort um herauszufinden wer gewonnen hat!');
 		}
 
+		if (this.playerManager.getPlayingPlayers().length == 1) {
+			this.eventBus.dispatch({
+				event: {
+					type: 'PLAYER-WON-ROUND',
+					payload: this.playerManager.getPlayingPlayers().map((x) => x.client.uuid)
+				}
+			});
+			return;
+		}
+
 		let winnerIds: string[] = [];
 		let winnerNumber: number | null = null;
 
 		Array.from(this.schaetzungen.entries()).forEach((x) => {
+			if (this.playerManager.getPlayerByUuid(x[0]).status != MemberStatus.ON) {
+				return;
+			}
+
 			if (winnerNumber == null) {
 				winnerNumber = x[1];
 				winnerIds = [x[0]];
