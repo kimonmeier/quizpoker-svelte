@@ -46,7 +46,7 @@ export class ControlsManager {
 
 				this.takePlayerControls();
 
-				this.lastPlayerToBet = this.bigBlindId;
+				this.lastPlayerToBet = this.findNextPlayerId(this.bigBlindId!)!;
 			}
 		});
 
@@ -62,19 +62,11 @@ export class ControlsManager {
 					return;
 				}
 
-				let nextPlayerId: string;
 				if (this.lastPlayerToBet == null) {
-					nextPlayerId = this.findNextPlayerId(this.bigBlindId!)!;
-					this.lastPlayerToBet = this.bigBlindId!;
-				} else {
-					nextPlayerId = this.lastPlayerToBet;
-				}
-
-				if (!nextPlayerId) {
 					return;
 				}
 
-				this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
+				this.givePlayerControls(this.lastPlayerToBet, this.lastPlayerToBet);
 			}
 		});
 	}
@@ -93,9 +85,13 @@ export class ControlsManager {
 						console.log('Controls SELECTED');
 						const lastPlayerId = this.currentPlayerInControl;
 						this.takePlayerControls();
-						if (lastPlayerId != m.member_id) {
+
+						if (lastPlayerId == null) {
+							this.givePlayerControls(m.member_id, this.bigBlindId);
+						} else if (lastPlayerId != m.member_id) {
 							this.givePlayerControls(m.member_id, lastPlayerId);
 						}
+
 						break;
 					case GameMasterAction.CHANGE_PHASE:
 						this.takePlayerControls();
@@ -176,20 +172,10 @@ export class ControlsManager {
 			return;
 		}
 
-		const nextPlayerId = this.findNextPlayerId(lastPlayerId ?? this.bigBlindId!);
+		const nextPlayerId = this.findNextPlayerId(this.lastPlayerToBet ?? this.bigBlindId!);
 
 		if (!nextPlayerId) {
 			return;
-		}
-
-		if (hasBetted) {
-			if (
-				this.betManager.getBetValues(this.lastPlayerToBet!) ==
-				this.playerManager.getChips(this.lastPlayerToBet!)
-			) {
-				this.lastPlayerToBet = nextPlayerId;
-				this.lastPlayerAllIn = true;
-			}
 		}
 
 		this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
