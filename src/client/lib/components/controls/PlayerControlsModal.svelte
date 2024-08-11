@@ -64,9 +64,9 @@
 
 		if (raiseTo > currentChips!.chips) {
 			raiseTo = currentChips!.chips;
-		}
-
-		if (raiseTo == currentChips!.bet) {
+		} else if (raiseTo <= $minimumBet) {
+			raiseTo = $minimumBet;
+		} else if (raiseTo == currentChips!.bet) {
 			raiseTo = currentChips!.chips + 50;
 		}
 
