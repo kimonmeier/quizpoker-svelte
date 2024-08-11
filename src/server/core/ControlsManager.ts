@@ -62,7 +62,13 @@ export class ControlsManager {
 					return;
 				}
 
-				const nextPlayerId = this.findNextPlayerId(this.lastPlayerToBet ?? this.bigBlindId!);
+				let nextPlayerId: string;
+				if (this.lastPlayerToBet == null) {
+					nextPlayerId = this.findNextPlayerId(this.bigBlindId!)!;
+					this.lastPlayerToBet = this.findPrevPlayerId(nextPlayerId)!;
+				} else {
+					nextPlayerId = this.lastPlayerToBet;
+				}
 
 				if (!nextPlayerId) {
 					return;
@@ -102,9 +108,7 @@ export class ControlsManager {
 							break;
 						}
 
-						const nextPlayerAfterBigBlind = this.findNextPlayerId(this.getPlayerAfterBigBlind())!;
-						this.givePlayerControls(nextPlayerAfterBigBlind, nextPlayerAfterBigBlind);
-
+						this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
 						this.lastPlayerToBet = this.currentPlayerInControl;
 						break;
 				}
@@ -189,17 +193,6 @@ export class ControlsManager {
 		this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
 	}
 
-	private getPlayerAfterBigBlind(): string {
-		const playingPlayers = this.playerManager.getPlayingPlayers();
-		let index = playingPlayers.findIndex((x) => x.client.uuid == this.bigBlindId) + 1;
-
-		if (!playingPlayers.at(index)) {
-			index = 0;
-		}
-
-		return playingPlayers.at(index)!.client.uuid;
-	}
-
 	private findNextPlayerId(startId: string): string | undefined {
 		const playingPlayers = this.playerManager.getPlayingPlayers();
 
@@ -209,6 +202,34 @@ export class ControlsManager {
 			let indexLastPlayer = playingPlayers.findIndex((x) => x.client.uuid == playerId) + 1;
 			if (indexLastPlayer >= playingPlayers.length) {
 				indexLastPlayer = 0;
+			}
+
+			playerId = playingPlayers.at(indexLastPlayer)?.client.uuid;
+
+			if (!playerId) {
+				console.log('Something went wrong, no player found');
+				return undefined;
+			}
+
+			count++;
+
+			if (count >= 30) {
+				return undefined;
+			}
+		} while (this.betManager.getBetValues(playerId) === this.playerManager.getChips(playerId));
+
+		return playerId;
+	}
+
+	private findPrevPlayerId(startId: string): string | undefined {
+		const playingPlayers = this.playerManager.getPlayingPlayers();
+
+		let count = 0;
+		let playerId: string | undefined | null = startId;
+		do {
+			let indexLastPlayer = playingPlayers.findIndex((x) => x.client.uuid == playerId) - 1;
+			if (indexLastPlayer < 0) {
+				indexLastPlayer = playingPlayers.length - 1;
 			}
 
 			playerId = playingPlayers.at(indexLastPlayer)?.client.uuid;
