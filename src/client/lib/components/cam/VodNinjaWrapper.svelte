@@ -10,7 +10,7 @@
 	<iframe
 		allow="autoplay;fullscreen;"
 		class="rounded-t-2xl aspect-video {className}"
-		src="{url}&cleanoutput&transparent&as&videobitrate=6000"
+		src="{url}&cleanoutput&transparent&as&videobitrate=6000&deafen&noaudioprocessing"
 		title="Kamera"
 	/>
 {:else}
