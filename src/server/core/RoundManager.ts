@@ -123,9 +123,6 @@ export class RoundManager {
 				nextPhase = FragenPhase.ANTWORT;
 				value = this.frage.antwort;
 				break;
-			case FragenPhase.ANTWORT:
-				nextPhase = FragenPhase.PAUSE;
-				break;
 			default:
 				throw new Error('No Phase found');
 		}
