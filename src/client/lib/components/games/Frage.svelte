@@ -5,7 +5,7 @@
 </script>
 
 <div
-	transition:fly={{ duration: 1_000, x: 1000, opacity: 1.0 }}
+	transition:fly|local={{ duration: 1_000, x: 1000, opacity: 1.0 }}
 	class="bg-zinc-800 rounded-3xl w-full col-span-3 flex flex-row text-xl shadow-lg shadow-black"
 >
 	<div
