@@ -1,0 +1,15 @@
+FROM denoland/deno:alpine
+# The port that your application listens to.
+EXPOSE 80
+
+WORKDIR /app
+
+# Prefer not to run as root.
+USER deno
+
+COPY . .
+
+# Compile the main app so that it doesn't need to be compiled each startup/entry.
+RUN deno cache --import-map=import_map.json ./src/server/index.ts
+CMD ["run", "--import-map=import_map.json", "--allow-all", "./src/server/index.ts"]
+

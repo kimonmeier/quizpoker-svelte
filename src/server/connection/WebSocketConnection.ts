@@ -18,7 +18,7 @@ export default class WebSocketConnection extends EventEmitter implements Connect
 
 	public connect(): void {
 		this.socket = new WebSocketServer({
-			port: 2224
+			port: 80
 		});
 
 		this.socket.on('connection', this.handleConnect);
