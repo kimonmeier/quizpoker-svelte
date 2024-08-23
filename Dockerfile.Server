@@ -1,15 +1,12 @@
-FROM node:22-alpine
-COPY --from=denoland/deno:bin-1.46.1 /deno /usr/local/bin/deno
+FROM alpine
+# The port that your application listens to.
+EXPOSE 8080
 
 WORKDIR /app
 
-COPY . .
+# Prefer not to run as root.
+USER deno
 
-RUN npm i
+COPY ./output/server ./server
 
-# The port that your application listens to.
-EXPOSE 80
-# Compile the main app so that it doesn't need to be compiled each startup/entry.
-RUN deno cache --import-map=import_map.json ./src/server/index.ts
-CMD ["run", "--import-map=import_map.json", "--allow-all", "./src/server/index.ts"]
 
