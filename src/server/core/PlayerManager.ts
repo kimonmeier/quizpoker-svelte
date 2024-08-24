@@ -26,15 +26,22 @@ export default class PlayerManager {
 		this.eventBus.registerToEvent({
 			event: 'NEXT-QUESTION',
 			listener: () => {
-				const foldedPlayers = this.getPlayers().filter((x) => x.status == MemberStatus.FOLDED);
+				const foldedPlayers = this.getPlayers();
 
 				foldedPlayers.forEach((player) => {
+					if (player.status == MemberStatus.PLEITE) {
+						return;
+					}
+
 					const chips = this.getChips(player.client.uuid);
 					if (chips == 0) {
 						player.status = MemberStatus.PLEITE;
 					} else {
 						player.status = MemberStatus.ON;
 					}
+
+					this.players.set(player.client, player);
+
 					this.connection.broadcast({
 						type: ServerEvents.UPDATED_MITGLIED_VALUES,
 						id: player.client.uuid,
@@ -135,6 +142,8 @@ export default class PlayerManager {
 			.filter((x) => x.status == MemberStatus.ON)
 			.sort(this.comparePlayerFn);
 	}
+
+	public resetFoldedPlayer(): void {}
 
 	private comparePlayerFn(player1: Player, player2: Player): number {
 		return StringHelper.hashCode(player1.client.uuid) - StringHelper.hashCode(player2.client.uuid);
