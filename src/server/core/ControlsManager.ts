@@ -116,9 +116,11 @@ export class ControlsManager {
 				}
 
 				if (m.action === MemberAction.FOLD) {
-					this.playerManager.getPlayingPlayers().length == 2;
-					this.takePlayerControls();
-					return;
+					setTimeout(() => {
+						if (this.playerManager.getPlayingPlayers().length == 1) {
+							this.takePlayerControls();
+						}
+					}, 500);
 				}
 
 				this.moveControlsForward();
