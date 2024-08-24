@@ -67,6 +67,7 @@ export class ControlsManager {
 				}
 
 				this.givePlayerControls(this.lastPlayerToBet, this.lastPlayerToBet);
+				this.lastPlayerToBet = this.currentPlayerInControl!;
 			}
 		});
 	}
@@ -104,10 +105,7 @@ export class ControlsManager {
 							break;
 						}
 
-						this.givePlayerControls(
-							this.findNextPlayerId(this.lastPlayerToBet!)!,
-							this.lastPlayerToBet!
-						);
+						this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
 						this.lastPlayerToBet = this.currentPlayerInControl!;
 						break;
 				}
