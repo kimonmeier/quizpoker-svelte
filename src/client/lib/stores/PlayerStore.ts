@@ -12,6 +12,10 @@ interface PlayerStore extends Readable<PlayerModel[]> {
 	reset: () => void;
 }
 
+function comparePlayerFn(player1: PlayerModel, player2: PlayerModel): number {
+	return StringHelper.hashCode(player1.id) - StringHelper.hashCode(player2.id);
+}
+
 function createPlayerStore(): PlayerStore {
 	const { subscribe, set, update } = writable<PlayerModel[]>([]);
 
@@ -20,7 +24,7 @@ function createPlayerStore(): PlayerStore {
 		addPlayer: (player: PlayerModel) => {
 			update((x) => {
 				x.push(player);
-				return x.sort((x) => StringHelper.hashCode(x.id));
+				return x.sort(comparePlayerFn);
 			});
 
 			schaetzungStore.addPlayer(player.id);
@@ -28,7 +32,7 @@ function createPlayerStore(): PlayerStore {
 		},
 		removePlayer: (playerId: string) => {
 			update((x) => {
-				return x.filter((x) => x.id != playerId).sort((x) => StringHelper.hashCode(x.id));
+				return x.filter((x) => x.id != playerId).sort(comparePlayerFn);
 			});
 
 			schaetzungStore.removePlayer(playerId);
@@ -38,7 +42,7 @@ function createPlayerStore(): PlayerStore {
 			update((x) => {
 				console.log('UPDATE PLAYER');
 				x.find((z) => z.id == playerId)!.playerStatus = status;
-				return x;
+				return x.sort(comparePlayerFn);
 			}),
 		reset: () => set([])
 	};

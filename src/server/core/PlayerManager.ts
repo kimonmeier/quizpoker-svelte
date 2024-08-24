@@ -133,7 +133,11 @@ export default class PlayerManager {
 	public getPlayingPlayers(): Player[] {
 		return Array.from(this.players.values())
 			.filter((x) => x.status == MemberStatus.ON)
-			.sort((x) => StringHelper.hashCode(x.client.uuid));
+			.sort(this.comparePlayerFn);
+	}
+
+	private comparePlayerFn(player1: Player, player2: Player): number {
+		return StringHelper.hashCode(player1.client.uuid) - StringHelper.hashCode(player2.client.uuid);
 	}
 
 	public getChips(playerId: string): number {
