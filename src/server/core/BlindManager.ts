@@ -50,7 +50,9 @@ export class BlindManager {
 			const bigBlindIndex = playingPlayers.findIndex((x) => x.client.uuid == this.bigBlindPlayerId);
 			this.smallBlindPlayerId = this.bigBlindPlayerId!;
 
-			this.bigBlindPlayerId = playingPlayers.at(bigBlindIndex + 1)!.client.uuid;
+			this.bigBlindPlayerId = (
+				playingPlayers.at(bigBlindIndex + 1) ?? playingPlayers.at(0)!
+			).client.uuid;
 		}
 
 		this.betManager.addBet({
