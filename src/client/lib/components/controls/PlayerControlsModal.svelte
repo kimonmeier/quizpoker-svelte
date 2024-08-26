@@ -108,6 +108,17 @@
 
 	let raiseTo = $minimumBet;
 	let schaetzung = 0;
+	let minimumBetSubscriber: Unsubscriber | undefined = undefined;
+
+	onMount(() => {
+		minimumBetSubscriber = minimumBet.subscribe((bet) => (raiseTo = bet));
+	});
+
+	onDestroy(() => {
+		if (minimumBetSubscriber) {
+			minimumBetSubscriber();
+		}
+	});
 
 	$: currentChips = $chipStore.find((x) => x.playerId == $currentPlayerId);
 	$: hasControl = $playerWhichHasControl == $currentPlayerId;
