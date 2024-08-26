@@ -28,13 +28,13 @@
 <style>
 	@keyframes pulse-animation {
 		0% {
-			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.3);
+			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.4);
 		}
 		50% {
-			box-shadow: 0px 0px 30px 5px rgba(255, 0, 0, 0.6);
+			box-shadow: 0px 0px 30px 10px rgba(255, 0, 0, 0.8);
 		}
 		100% {
-			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.3);
+			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.4);
 		}
 	}
 
