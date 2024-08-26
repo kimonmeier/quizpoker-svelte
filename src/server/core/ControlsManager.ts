@@ -23,7 +23,6 @@ export class ControlsManager {
 	private currentPlayerInControl: string | null = null;
 	private players: Map<string, number> = new Map();
 	private lastPlayerToBet: string | null = null;
-	private lastPlayerAllIn: boolean = false;
 	private bigBlindId: string | null = null;
 
 	public constructor(
@@ -53,12 +52,7 @@ export class ControlsManager {
 		this.eventBus.registerToEvent({
 			event: 'PHASE-TRIGGERED',
 			listener: (event) => {
-				if (event.payload == FragenPhase.FRAGE) {
-					this.lastPlayerAllIn = false;
-					return;
-				}
-
-				if (event.payload == FragenPhase.PAUSE) {
+				if (event.payload == FragenPhase.FRAGE || event.payload == FragenPhase.PAUSE) {
 					return;
 				}
 
