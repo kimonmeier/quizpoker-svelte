@@ -16,6 +16,7 @@ import { chipStore, gamePot, gameStateStore } from '../stores/GameStore';
 import { schaetzungStore } from '../stores/SchaetzungenStore';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus';
 import { toastStore } from '../stores/ToastStore';
+import { backgroundMusicStore, backgroundMusicStoreIntense } from '../stores/SoundStore';
 
 export class App {
 	private static instance: App;
@@ -160,6 +161,16 @@ export class App {
 
 					return gameState;
 				});
+
+				if (m.phase == FragenPhase.ANTWORT) {
+					get(backgroundMusicStore).stop();
+					get(backgroundMusicStoreIntense).play();
+				}
+
+				if (m.phase == FragenPhase.PAUSE) {
+					get(backgroundMusicStore).stop();
+					get(backgroundMusicStoreIntense).stop();
+				}
 				break;
 
 			case ServerEvents.NAECHSTE_FRAGE:
@@ -174,6 +185,11 @@ export class App {
 
 					return gameState;
 				});
+				get(backgroundMusicStore).stop();
+				get(backgroundMusicStoreIntense).stop();
+
+				get(backgroundMusicStore).play();
+				get(backgroundMusicStoreIntense).stop();
 				break;
 
 			case ServerEvents.UPDATED_GAME_VALUES:

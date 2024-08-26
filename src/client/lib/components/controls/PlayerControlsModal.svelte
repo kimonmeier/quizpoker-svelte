@@ -8,6 +8,12 @@
 	import { chipStore } from '@client/lib/stores/GameStore';
 	import GroupBox from '../groupBox/GroupBox.svelte';
 	import { schaetzungAbgegeben } from '@client/lib/stores/SchaetzungenStore';
+	import { onDestroy, onMount } from 'svelte';
+	import type { Unsubscriber } from 'svelte/store';
+	import {
+		backgroundMusicIntenseVolume,
+		backgroundMusicVolume
+	} from '@client/lib/stores/SoundStore';
 
 	export let showModal: boolean;
 
@@ -138,7 +144,7 @@
 				Call
 			</button>
 			<button
-				class="disabled:bg-gray-7000 bg-blue-400 rounded-2xl flex-grow p-2"
+				class="disabled:bg-gray-700 bg-blue-400 rounded-2xl flex-grow p-2"
 				disabled={!hasControl}
 				on:click={raise}
 			>
@@ -162,6 +168,26 @@
 				step="50"
 			/>
 			<input type="number" class="font-bold bg-neutral-700 rounded-xl" bind:value={raiseTo} />
+		</div>
+	</GroupBox>
+	<GroupBox title="Game Einstellungen">
+		<div class="flex flex-col w-full gap-5">
+			<div class="flex flex-row">
+				<div>Lautstärke normale Musik:</div>
+
+				<input type="range" bind:value={$backgroundMusicVolume} min={0} max={1} step="0.005" />
+			</div>
+			<div class="flex flex-row">
+				<div>Lautstärke intensive Musik:</div>
+
+				<input
+					type="range"
+					bind:value={$backgroundMusicIntenseVolume}
+					min={0}
+					max={1}
+					step="0.005"
+				/>
+			</div>
 		</div>
 	</GroupBox>
 </Modal>
