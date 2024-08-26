@@ -44,6 +44,9 @@ export default class BetManager {
 
 	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
 		switch (m.type) {
+			case ClientEvents.MEMBER_LEAVT:
+				this.clearBetFromPlayer(client.uuid);
+				break;
 			case ClientEvents.GAME_MASTER_ACTION:
 				if (m.action != GameMasterAction.UPDATE_MEMBER) {
 					break;
