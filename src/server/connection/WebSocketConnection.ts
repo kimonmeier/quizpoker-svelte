@@ -18,7 +18,7 @@ export default class WebSocketConnection extends EventEmitter implements Connect
 
 	public connect(): void {
 		this.socket = new WebSocketServer({
-			port: 80
+			port: Deno.env.get('PORT')
 		});
 
 		this.socket.on('connection', this.handleConnect);
@@ -29,7 +29,7 @@ export default class WebSocketConnection extends EventEmitter implements Connect
 	}
 
 	public broadcastExcept(m: ServerMessage, ...clients: WebSocketClient[]): void {
-		let arrays = new Array();
+		const arrays: WebSocketClient[] = [];
 		this._clients.forEach((element) => {
 			if (!clients.includes(element, 0)) {
 				arrays.push(element);

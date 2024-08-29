@@ -113,6 +113,9 @@ export default class BetManager {
 				this.lastPlayer = client.uuid;
 
 				break;
+			default:
+				console.log('Something went wrong');
+				break;
 		}
 	}
 
