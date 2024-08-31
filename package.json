@@ -46,7 +46,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@danielemariani/ts-event-bus": "^1.2.0",
+		"@danielemariani/ts-event-bus": "^1.1.0",
 		"howler": "^2.2.4",
 		"uuid": "^10.0.0",
 		"ws": "^8.18.0"
