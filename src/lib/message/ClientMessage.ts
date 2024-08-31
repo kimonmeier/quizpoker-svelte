@@ -88,6 +88,11 @@ interface GameMasterAutomaticPhaseChanging {
 	activated: boolean;
 }
 
+interface PingMessage {
+	type: ClientEvents.SERVER_PING,
+	date: number
+}
+
 export enum GameMasterAction {
 	CONTROLS_SELECTED,
 	START_GAME,
@@ -124,4 +129,5 @@ export type ClientMessage =
 	| ConnectionSuccessEvent
 	| MemberLoginEvent
 	| MemberLeftEvent
-	| GameMasterLoginEvent;
+	| GameMasterLoginEvent
+	| PingMessage;

@@ -15,5 +15,7 @@ export enum ClientEvents {
 
 	MITGLIED_ACTION,
 
-	GAME_MASTER_ACTION
+	GAME_MASTER_ACTION,
+
+	SERVER_PING
 }

@@ -9,6 +9,9 @@ import { createInMemoryEventBus } from '@danielemariani/ts-event-bus';
 import type { EventDeclaration, QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import { RoundManager } from './RoundManager.ts';
 import { BlindManager } from './BlindManager.ts';
+import { C, S } from "../../../build/client/_app/immutable/chunks/scheduler.PumrSTIC.js";
+import { ClientEvents } from "@poker-lib/enums/ClientEvents.ts";
+import { ServerEvents } from "@poker-lib/enums/ServerEvents.ts";
 
 export class App {
 	private readonly webSocket: WebSocketConnection;
@@ -55,6 +58,13 @@ export class App {
 		this.webSocket.addListener('message', (client: WebSocketClient, message: ClientMessage) => {
 			console.log('Neue Nachricht vo dem Client: ' + client.ip);
 			console.log(message);
+
+			if (message.type == ClientEvents.SERVER_PING) {
+				client.send({
+					type: ServerEvents.PING,
+					ms: message.date - Date.now()
+				})
+			}
 
 			this.betManager.handleInputs(client, message);
 			this.controlsManager.handleInputs(client, message);
