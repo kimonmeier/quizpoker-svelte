@@ -9,7 +9,6 @@ import { createInMemoryEventBus } from '@danielemariani/ts-event-bus';
 import type { EventDeclaration, QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import { RoundManager } from './RoundManager.ts';
 import { BlindManager } from './BlindManager.ts';
-import { C, S } from "../../../build/client/_app/immutable/chunks/scheduler.PumrSTIC.js";
 import { ClientEvents } from "@poker-lib/enums/ClientEvents.ts";
 import { ServerEvents } from "@poker-lib/enums/ServerEvents.ts";
 
