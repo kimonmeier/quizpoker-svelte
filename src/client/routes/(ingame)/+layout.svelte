@@ -20,10 +20,6 @@
 		document.documentElement.requestFullscreen();
 	});
 
-	onDestroy(() => {
-		cheatingDetector.unregisterHandlers();
-	});
-
 	function beforeUnload(eventargs: BeforeUnloadEvent) {
 		if ($isLoggedIn) {
 			App.getInstance().stopApp();

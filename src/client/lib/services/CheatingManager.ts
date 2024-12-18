@@ -14,15 +14,6 @@ export class CheatingDetector {
 		window.addEventListener('pagehide', (ev) => this.onVisibilityChange(ev));
 	}
 
-	public unregisterHandlers() {
-		console.log('Unregistering Cheating Detector');
-
-		window.removeEventListener('focus', (ev) => this.onVisibilityChange(ev));
-		window.removeEventListener('blur', (ev) => this.onVisibilityChange(ev));
-		window.removeEventListener('pageshow', (ev) => this.onVisibilityChange(ev));
-		window.removeEventListener('pagehide', (ev) => this.onVisibilityChange(ev));
-	}
-
 	private onVisibilityChange(ev: Event) {
 		if (['focus', 'pageshow'].includes(ev.type)) {
 			if (this.inView) {
