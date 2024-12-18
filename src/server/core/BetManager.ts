@@ -9,6 +9,7 @@ import type { BasicManager } from './BasicManager.ts';
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppSocket } from './App.ts';
 import { ToastType } from '@poker-lib/enums/ToastType.ts';
+import { MemberAction } from '@poker-lib/enums/MemberAction.ts';
 
 export default class BetManager implements BasicManager {
 	private readonly playerManger: PlayerManager;
@@ -51,7 +52,7 @@ export default class BetManager implements BasicManager {
 	}
 
 	private fold(playerId: PlayerId): void {
-		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.FOLD);
+		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, MemberAction.FOLDED);
 
 		this.lastPlayer = playerId;
 	}
@@ -64,7 +65,7 @@ export default class BetManager implements BasicManager {
 			return;
 		}
 
-		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.CHECK);
+		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, MemberAction.CHECK);
 		this.lastPlayer = playerId;
 	}
 
@@ -80,7 +81,7 @@ export default class BetManager implements BasicManager {
 		this.historyManager.SendAndSaveToHistory(
 			'SHOW_TOAST',
 			playerId,
-			ToastType.CALL,
+			MemberAction.CALL,
 			lastPlayerbet - betValues
 		);
 
@@ -93,7 +94,12 @@ export default class BetManager implements BasicManager {
 
 		this.addBet({ player_id: playerId, bet: valueRaised });
 
-		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.RAISE, valueRaised);
+		this.historyManager.SendAndSaveToHistory(
+			'SHOW_TOAST',
+			playerId,
+			MemberAction.RAISE,
+			valueRaised
+		);
 
 		this.lastPlayer = playerId;
 	}
