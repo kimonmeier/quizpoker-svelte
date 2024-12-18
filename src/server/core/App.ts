@@ -79,7 +79,7 @@ export class App {
 			this.roundManager.registerSocket(socket, userId);
 		});
 
-		this.webSocket.listen(3000);
+		this.webSocket.listen(Deno.env.get('PORT') ?? 3000);
 	}
 
 	public stopApp(): void {

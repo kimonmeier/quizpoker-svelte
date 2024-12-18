@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { ToastType, type ToastModel } from '@client/lib/models/Toast';
+	import { type ToastModel } from '@client/lib/models/Toast';
+	import { ToastType } from '@poker-lib/enums/ToastType';
 	import { fly } from 'svelte/transition';
 
 	export let toast: ToastModel | undefined;

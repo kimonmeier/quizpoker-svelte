@@ -1,4 +1,5 @@
 import { MemberAction } from '@poker-lib/enums/MemberAction.ts';
+import { ToastType } from '@poker-lib/enums/ToastType';
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 
 interface ToastModelNoValue {
@@ -12,13 +13,6 @@ interface ToastModelWithValue {
 	playerId: string;
 	type: ToastType.RAISE | ToastType.CALL;
 	chips: number;
-}
-
-export enum ToastType {
-	FOLD,
-	CHECK,
-	RAISE,
-	CALL
 }
 
 export type ToastModel = ToastModelNoValue | ToastModelWithValue;

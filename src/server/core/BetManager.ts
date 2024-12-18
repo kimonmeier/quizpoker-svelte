@@ -8,7 +8,7 @@ import type { HistoryManager } from './HistoryManager.ts';
 import type { BasicManager } from './BasicManager.ts';
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppSocket } from './App.ts';
-import { ToastType } from '@client/lib/models/Toast.ts';
+import { ToastType } from '@poker-lib/enums/ToastType.ts';
 
 export default class BetManager implements BasicManager {
 	private readonly playerManger: PlayerManager;
