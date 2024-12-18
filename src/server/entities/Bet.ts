@@ -1,20 +1,22 @@
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+
 export interface Bet {
-	player_id: string;
+	player_id: PlayerId;
 	bet: number;
 }
 
 export interface SidePot {
 	totalAmount: number;
-	players: string[];
+	players: PlayerId[];
 }
 
 export interface SidePotPlayer {
-	playerId: string;
+	playerId: PlayerId;
 	bet: number;
 	chips: number;
 }
 
 export interface SidePotWinnerResult {
-	playerId: string;
+	playerId: PlayerId;
 	chipsWon: number;
 }

@@ -1,22 +1,20 @@
-import { FragenPhase, type ServerMessage } from '@poker-lib/message/ServerMessage';
-import WebSocketClient from './WebSocketClient';
-import type { ClientMessage } from '@poker-lib/message/ClientMessage';
-import { goto } from '$app/navigation';
-import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents';
+import { goto, invalidateAll } from '$app/navigation';
 import { minimumBet, playerStore, playerWhichHasControl } from '../stores/PlayerStore';
-import {
-	currentPlayerId,
-	gameMasterUrl,
-	isGamemaster,
-	isLoggedIn
-} from '../stores/CredentialStore';
+import { gameMasterUrl } from '../stores/CredentialStore';
 import { get } from 'svelte/store';
 import { chipStore, gamePot, gameStateStore } from '../stores/GameStore';
 import { schaetzungStore } from '../stores/SchaetzungenStore';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus';
 import { toastStore } from '../stores/ToastStore';
 import { backgroundMusicStore, backgroundMusicStoreIntense } from '../stores/SoundStore';
+import { io, type Socket } from 'socket.io-client';
+import type { ServerToClientEvents } from '@poker-lib/message/ServerToClientEvents';
+import type { ClientToServerEvents } from '@poker-lib/message/ClientToServerEvents';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
+import type { MemberAction } from '@poker-lib/enums/MemberAction';
+import { FragenPhase } from '@poker-lib/enums/FragenPhase';
+
+export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 export class App {
 	private static instance: App;
@@ -29,172 +27,174 @@ export class App {
 		return App.instance;
 	}
 
-	private client!: WebSocketClient;
+	private client!: AppSocket;
 
 	private constructor() {
 		App.instance = this;
 	}
 
 	public startApp(): void {
-		this.client = new WebSocketClient('wss://gameshow.k-meier.ch/mindpoker/socket');
-		//this.client = new WebSocketClient('ws://localhost:2224');
+		this.client = io({
+			autoConnect: true,
+			reconnection: true,
+			reconnectionAttempts: 10000
+		});
+		this.registerHandlers(this.client);
 
-		this.client.recieve = (m: ServerMessage) => this.recieve(m);
+		this.client.connect();
 	}
 
-	public sendMessage(m: ClientMessage): void {
-		this.client.send(m);
+	public get IsConnected() {
+		return this.client?.connected ?? false;
+	}
+
+	public get Socket() {
+		return this.client;
 	}
 
 	public stopApp(): void {
-		this.client.send({
-			type: ClientEvents.MEMBER_LEAVT
-		});
+		this.client.disconnect();
 
-		goto('/', {
-			invalidateAll: true,
-			replaceState: true
+		invalidateAll().then(() => {
+			console.log('Successfully invalidated all');
+			goto('login').then(() => {
+				console.log('Rerouted to login!');
+			});
 		});
-	}
-
-	public get isConnected(): boolean {
-		return this.client?.isOpen;
 	}
 
 	public async awaitConnection(timeout: number): Promise<boolean> {
 		console.log('await connection');
 		let index = 0;
-		while (!this.client.isOpen && index < timeout) {
-			console.log('Checking', this.client.isOpen, index);
-			await new Promise((r) => setTimeout(r, 50));
+		while (!this.client.connected && index < timeout) {
+			console.log('Checking', this.client.connected, index);
+			await new Promise((r) => setTimeout(r, 250));
 			index++;
 		}
 
 		console.log('No checking anymore');
 
-		return this.client.isOpen;
+		return this.client.connected;
 	}
 
-	private async recieve(m: ServerMessage): Promise<void> {
-		console.log('Neue Nachricht vom Server');
-		console.log(m);
+	private registerHandlers(socket: AppSocket) {
+		socket
+			.on('PLAYER_JOINED', (id, name, link) => this.playerJoined(id, name, link))
+			.on('PLAYER_LEFT', (id) => this.playerLeft(id))
+			.on('GAMEMASTER_LOGIN', (url) => this.gameMasterLogin(url))
+			.on('CHIPS_CHANGED', (id, chips) => this.changeChips(id, chips))
+			.on('BET_CHANGED', (id, bet) => this.changeBet(id, bet))
+			.on('STATUS_CHANGED', (id, status) => this.changePlayerStatus(id, status))
+			.on('GIVE_PLAYER_CONTROLS', (id, minimumBet) => this.givePlayerControl(id, minimumBet))
+			.on('TAKE_PLAYER_CONTROLS', () => this.takePlayerControl())
+			.on('MEMBER_ISSUED_SCHAETZUNG', (id, schaetzung) =>
+				this.memberIssuedSchaetzung(id, schaetzung)
+			)
+			.on('SHOW_TOAST', (playerId, action, value) => this.showToast(playerId, action, value))
+			.on('CHANGE_POT', (pot) => gamePot.set(pot))
+			.on('DISPLAY_NEXT_QUESTION', (frage, einheit) => this.displayNextQuestion(frage, einheit))
+			.on('DISPLAY_NEXT_PHASE', (phase, value) => this.displayNextPhase(phase, value));
 
-		switch (m.type) {
-			case ServerEvents.NEW_MITGLIED:
-				playerStore.addPlayer({
-					id: m.id,
-					link: m.link,
-					name: m.name,
-					playerStatus: MemberStatus.ON
-				});
-				break;
-			case ServerEvents.REMOVED_MITGLIED:
-				playerStore.removePlayer(m.id);
-				break;
+		socket.io.on('reconnect', (attempt) =>
+			console.log(`Attempt to reconnect for the ${attempt} time!`)
+		);
+		socket.io.on('error', (err) => console.log('Error occured', err));
+	}
 
-			case ServerEvents.PING:
-				console.log('PING');
-				break;
+	private playerJoined(playerId: PlayerId, name: string, link: string): void {
+		playerStore.addPlayer({
+			id: playerId,
+			name: name,
+			link: link,
+			playerStatus: MemberStatus.ON
+		});
+	}
 
-			case ServerEvents.MITGLIED_SUCCESSFULL_LOGIN:
-				currentPlayerId.set(m.id);
-				isLoggedIn.set(true);
+	private playerLeft(playerId: PlayerId): void {
+		playerStore.removePlayer(playerId);
+	}
 
-				if (get(isGamemaster)) {
-					goto('gamemaster');
-				} else {
-					goto('play');
-				}
-				break;
-			case ServerEvents.UPDATED_MITGLIED_VALUES:
-				if (m.chips != undefined) {
-					chipStore.setChips(m.id, m.chips);
-				}
+	private gameMasterLogin(url: string): void {
+		gameMasterUrl.set(url);
+	}
 
-				if (m.einsatz != undefined) {
-					chipStore.setBet(m.id, m.einsatz);
-				}
+	private changeChips(playerId: PlayerId, chips: number): void {
+		chipStore.setChips(playerId, chips);
+	}
 
-				if (m.status != undefined) {
-					playerStore.updatePlayer(m.id, m.status);
-				}
-				break;
+	private changeBet(playerId: PlayerId, bet: number): void {
+		chipStore.setBet(playerId, bet);
+	}
 
-			case ServerEvents.GAMEMASTER_LOGIN:
-				gameMasterUrl.set(m.link);
-				break;
+	private changePlayerStatus(playerId: PlayerId, status: MemberStatus): void {
+		playerStore.updatePlayer(playerId, status);
+	}
 
-			case ServerEvents.GIVE_PLAYER_CONTROLS:
-				playerWhichHasControl.set(m.member_id);
-				minimumBet.set(m.minimumBet);
-				break;
+	private givePlayerControl(playerId: PlayerId, minimumBets: number): void {
+		playerWhichHasControl.set(playerId);
+		minimumBet.set(minimumBets);
+	}
 
-			case ServerEvents.TAKE_PLAYER_CONTROLS:
-				playerWhichHasControl.set(null);
-				break;
+	private takePlayerControl(): void {
+		playerWhichHasControl.set(null);
+	}
 
-			case ServerEvents.MEMBER_ISSUED_SCHAETZUNG:
-				schaetzungStore.setSchaetzung(m.id, m.schaetzung);
-				break;
+	private memberIssuedSchaetzung(playerId: PlayerId, schaetzung: number): void {
+		schaetzungStore.setSchaetzung(playerId, schaetzung);
+	}
 
-			case ServerEvents.SHOW_TOAST:
-				toastStore.addToast(m.playerId, m.action, m.value);
-				break;
+	private showToast(playerId: PlayerId, action: MemberAction, value?: number): void {
+		toastStore.addToast(playerId, action, value);
+	}
 
-			case ServerEvents.NAECHSTE_PHASE:
-				gameStateStore.update((gameState) => {
-					gameState.currentPhase = m.phase;
+	private displayNextQuestion(frage: string, einheit?: string): void {
+		schaetzungStore.clearSchaetzungen();
+		gameStateStore.update((gameState) => {
+			gameState.currentPhase = FragenPhase.FRAGE;
+			gameState.currentFrage = {
+				id: crypto.randomUUID(),
+				frage: frage,
+				einheit: einheit
+			};
 
-					switch (m.phase) {
-						case FragenPhase.PAUSE:
-							gameState.currentFrage = undefined;
-							break;
-						case FragenPhase.RUNDE_1:
-							gameState.currentFrage!.hinweis_1 = m.value!;
-							break;
-						case FragenPhase.RUNDE_2:
-							gameState.currentFrage!.hinweis_2 = m.value!;
-							break;
-						case FragenPhase.ANTWORT:
-							gameState.currentFrage!.answer = m.value!;
-					}
+			return gameState;
+		});
+		get(backgroundMusicStore).stop();
+		get(backgroundMusicStoreIntense).stop();
 
-					return gameState;
-				});
+		get(backgroundMusicStore).play();
+		get(backgroundMusicStoreIntense).stop();
+	}
 
-				if (m.phase == FragenPhase.ANTWORT) {
-					get(backgroundMusicStore).stop();
-					get(backgroundMusicStoreIntense).play();
-				}
+	private displayNextPhase(phase: FragenPhase, value?: string): void {
+		gameStateStore.update((gameState) => {
+			gameState.currentPhase = phase;
 
-				if (m.phase == FragenPhase.PAUSE) {
-					get(backgroundMusicStore).stop();
-					get(backgroundMusicStoreIntense).stop();
-				}
-				break;
+			switch (phase) {
+				case FragenPhase.PAUSE:
+					gameState.currentFrage = undefined;
+					break;
+				case FragenPhase.RUNDE_1:
+					gameState.currentFrage!.hinweis_1 = value!;
+					break;
+				case FragenPhase.RUNDE_2:
+					gameState.currentFrage!.hinweis_2 = value!;
+					break;
+				case FragenPhase.ANTWORT:
+					gameState.currentFrage!.answer = value!;
+			}
 
-			case ServerEvents.NAECHSTE_FRAGE:
-				schaetzungStore.clearSchaetzungen();
-				gameStateStore.update((gameState) => {
-					gameState.currentPhase = m.phase;
-					gameState.currentFrage = {
-						id: crypto.randomUUID(),
-						frage: m.frage,
-						einheit: m.einheit
-					};
+			return gameState;
+		});
 
-					return gameState;
-				});
-				get(backgroundMusicStore).stop();
-				get(backgroundMusicStoreIntense).stop();
+		if (phase == FragenPhase.ANTWORT) {
+			get(backgroundMusicStore).stop();
+			get(backgroundMusicStoreIntense).play();
+		}
 
-				get(backgroundMusicStore).play();
-				get(backgroundMusicStoreIntense).stop();
-				break;
-
-			case ServerEvents.UPDATED_GAME_VALUES:
-				gamePot.set(m.pot);
-				break;
+		if (phase == FragenPhase.PAUSE) {
+			get(backgroundMusicStore).stop();
+			get(backgroundMusicStoreIntense).stop();
 		}
 	}
 }

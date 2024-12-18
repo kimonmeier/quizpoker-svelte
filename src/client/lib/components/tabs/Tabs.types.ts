@@ -1,7 +1,7 @@
-import type { ComponentType } from "svelte";
+import type { ComponentType } from 'svelte';
 
 export interface TabInfo<T> {
-    label: string;
-    value: T;
-    component: ComponentType;
+	label: string;
+	value: T;
+	component: ComponentType;
 }

@@ -4,8 +4,6 @@
 	import { ConfigType, type DataTableConfig } from '../datatable/DataTable.types';
 	import type { Frage } from '@client/lib/models/Frage';
 	import { App } from '@client/lib/services/GameManager';
-	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-	import { GameMasterAction } from '@poker-lib/message/ClientMessage';
 
 	const config: DataTableConfig<Frage>[] = [
 		{
@@ -49,15 +47,14 @@
 					throw new Error('Hinweis 1 fehlt');
 				}
 
-				App.getInstance().sendMessage({
-					type: ClientEvents.GAME_MASTER_ACTION,
-					action: GameMasterAction.PLAY_QUESTION,
-					question: frage.frage,
-					einheit: frage.einheit,
-					answer: frage.answer,
-					hinweis_1: frage.hinweis_1,
-					hinweis_2: frage.hinweis_2
-				});
+				App.getInstance().Socket.emit(
+					'PLAY_QUESTION',
+					frage.frage,
+					frage.hinweis_1,
+					frage.hinweis_2,
+					frage.answer,
+					frage.einheit
+				);
 			},
 			title: 'Auswahl',
 			value: 'Spielen'

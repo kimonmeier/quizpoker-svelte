@@ -1,9 +1,10 @@
 import { writable, type Readable } from 'svelte/store';
 import { parseToastType, type ToastModel } from '../models/Toast';
-import type { MemberAction } from '@poker-lib/message/ClientMessage';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
+import type { MemberAction } from '@poker-lib/enums/MemberAction';
 
 interface ToastStore extends Readable<ToastModel[]> {
-	addToast: (playerId: string, type: MemberAction, value?: number) => void;
+	addToast: (playerId: PlayerId, type: MemberAction, value?: number) => void;
 }
 
 function createToastStore(): ToastStore {
@@ -11,7 +12,7 @@ function createToastStore(): ToastStore {
 
 	return {
 		subscribe,
-		addToast: (playerId: string, type: MemberAction, value?: number) =>
+		addToast: (playerId: PlayerId, type: MemberAction, value?: number) =>
 			update((toasts) => {
 				// Create a unique ID so we can easily find/remove it
 				// if it is dismissible/has a timeout.

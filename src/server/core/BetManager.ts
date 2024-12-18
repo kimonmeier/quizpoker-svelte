@@ -1,33 +1,29 @@
-import type WebSocketConnection from '@server/connection/WebSocketConnection.ts';
 import type { Bet, SidePot } from '../entities/Bet.ts';
 import type PlayerManager from './PlayerManager.ts';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
-import {
-	GameMasterAction,
-	MemberAction,
-	type ClientMessage
-} from '@poker-lib/message/ClientMessage.ts';
-import { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import { SidePotHelper } from '@server/utils/SidePotHelper.ts';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
 import { ArrayUtils } from '@poker-lib/utils/ArrayUtils.ts';
+import type { HistoryManager } from './HistoryManager.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { AppSocket } from './App.ts';
+import { ToastType } from '@client/lib/models/Toast.ts';
 
-export default class BetManager {
+export default class BetManager implements BasicManager {
 	private readonly playerManger: PlayerManager;
 	private readonly eventBus: QuizPokerEventBus;
-	private readonly connection: WebSocketConnection;
+	private readonly historyManager: HistoryManager;
 
 	private bets: Bet[] = [];
-	private lastPlayer: string | null = null;
+	private lastPlayer: PlayerId | null = null;
 
 	public constructor(
-		connection: WebSocketConnection,
+		historyManager: HistoryManager,
 		eventBus: QuizPokerEventBus,
 		playerManager: PlayerManager
 	) {
-		this.connection = connection;
+		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 		this.playerManger = playerManager;
 
@@ -42,84 +38,67 @@ export default class BetManager {
 		});
 	}
 
-	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
-		switch (m.type) {
-			case ClientEvents.MEMBER_LEAVT:
-				this.clearBetFromPlayer(client.uuid);
-				break;
-			case ClientEvents.GAME_MASTER_ACTION:
-				if (m.action != GameMasterAction.UPDATE_MEMBER) {
-					break;
-				}
-
-				if (m.einsatz == null) {
-					break;
-				}
-
-				console.log('Einsatz ', m.einsatz);
-				console.log('Bet Values ', this.getBetValues(m.memberId));
-				console.log('Value ', m.einsatz - this.getBetValues(m.memberId));
-
-				this.addBet({ player_id: m.memberId, bet: m.einsatz - this.getBetValues(m.memberId) });
-				break;
-			case ClientEvents.MITGLIED_ACTION:
-				if (m.action == MemberAction.FOLD) {
-					this.connection.broadcast({
-						type: ServerEvents.SHOW_TOAST,
-						playerId: client.uuid,
-						action: m.action
-					});
-					break;
-				}
-
-				const betValues = this.getBetValues(client.uuid);
-
-				if (m.action == MemberAction.CHECK && betValues < this.getBetValues(this.lastPlayer!)) {
-					m.action = MemberAction.CALL;
-				} else if (m.action == MemberAction.CHECK) {
-					this.connection.broadcast({
-						type: ServerEvents.SHOW_TOAST,
-						playerId: client.uuid,
-						action: m.action
-					});
-					break;
-				}
-
-				if (m.action == MemberAction.RAISE) {
-					this.addBet({ player_id: client.uuid, bet: m.valueTo - betValues });
-
-					this.connection.broadcast({
-						type: ServerEvents.SHOW_TOAST,
-						playerId: client.uuid,
-						action: m.action,
-						value: m.valueTo - betValues
-					});
-				} else {
-					const lastPlayerbet = this.getBetValues(this.lastPlayer!);
-
-					this.addBet({
-						player_id: client.uuid,
-						bet: lastPlayerbet - betValues
-					});
-
-					this.connection.broadcast({
-						type: ServerEvents.SHOW_TOAST,
-						playerId: client.uuid,
-						action: m.action,
-						value: lastPlayerbet - betValues
-					});
-				}
-
-				this.lastPlayer = client.uuid;
-
-				break;
-			default:
-				console.log('Something went wrong');
-				break;
-		}
+	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
+		socket
+			.on('disconnect', () => this.clearBetFromPlayer(uuid))
+			.on('UPDATE_PLAYER_EINSATZ', (playerId, chips) =>
+				this.addBet({ player_id: playerId, bet: chips - this.getBetValues(playerId) })
+			)
+			.on('FOLD', () => this.fold(uuid))
+			.on('CHECK', () => this.check(uuid))
+			.on('CALL', () => this.call(uuid))
+			.on('RAISE', (valueRaisedTo) => this.raise(uuid, valueRaisedTo));
 	}
 
-	public getBetValues(userId: string): number {
+	private fold(playerId: PlayerId): void {
+		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.FOLD);
+
+		this.lastPlayer = playerId;
+	}
+
+	private check(playerId: PlayerId): void {
+		const betValues = this.getBetValues(playerId);
+
+		if (betValues < this.getBetValues(this.lastPlayer!)) {
+			this.call(playerId);
+			return;
+		}
+
+		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.CHECK);
+		this.lastPlayer = playerId;
+	}
+
+	private call(playerId: PlayerId): void {
+		const betValues = this.getBetValues(playerId);
+		const lastPlayerbet = this.getBetValues(this.lastPlayer!);
+
+		this.addBet({
+			player_id: playerId,
+			bet: lastPlayerbet - betValues
+		});
+
+		this.historyManager.SendAndSaveToHistory(
+			'SHOW_TOAST',
+			playerId,
+			ToastType.CALL,
+			lastPlayerbet - betValues
+		);
+
+		this.lastPlayer = playerId;
+	}
+
+	private raise(playerId: PlayerId, valueRaisedTo: number): void {
+		const betValues = this.getBetValues(playerId);
+		const valueRaised = valueRaisedTo - betValues;
+
+		this.addBet({ player_id: playerId, bet: valueRaised });
+
+		this.historyManager.SendAndSaveToHistory('SHOW_TOAST', playerId, ToastType.RAISE, valueRaised);
+
+		this.lastPlayer = playerId;
+	}
+
+	public getBetValues(userId: PlayerId): number {
 		return ArrayUtils.sumField(
 			this.bets.filter((x) => x.player_id == userId),
 			'bet'
@@ -134,35 +113,19 @@ export default class BetManager {
 
 		this.bets.push(bet);
 
-		this.connection.broadcast({
-			type: ServerEvents.UPDATED_MITGLIED_VALUES,
-			id: bet.player_id,
-			einsatz: this.getBetValues(bet.player_id)
-		});
-
-		this.connection.broadcast({
-			type: ServerEvents.UPDATED_GAME_VALUES,
-			pot: this.getPot()
-		});
+		this.historyManager.SendAndSaveToHistory('BET_CHANGED', bet.player_id, bet.bet);
+		this.historyManager.SendAndSaveToHistory('CHANGE_POT', this.getPot());
 	}
 
-	private clearBetFromPlayer(id: string): void {
+	private clearBetFromPlayer(id: PlayerId): void {
 		this.bets = this.bets.filter((x) => x.player_id != id);
 
-		this.connection.broadcast({
-			type: ServerEvents.UPDATED_MITGLIED_VALUES,
-			id,
-			einsatz: 0
-		});
-
-		this.connection.broadcast({
-			type: ServerEvents.UPDATED_GAME_VALUES,
-			pot: this.getPot()
-		});
+		this.historyManager.SendAndSaveToHistory('BET_CHANGED', id, 0);
+		this.historyManager.SendAndSaveToHistory('CHANGE_POT', this.getPot());
 	}
 
 	private getPot(): number {
-		var pot = 0;
+		let pot = 0;
 
 		this.bets.forEach((element) => {
 			pot += element.bet;
@@ -171,7 +134,7 @@ export default class BetManager {
 		return pot;
 	}
 
-	private anounceWinner(...wonPlayers: string[]): void {
+	private anounceWinner(...wonPlayers: PlayerId[]): void {
 		if (wonPlayers.length == 1) {
 			this.playerManger.adjustChips(
 				wonPlayers.at(0)!,
@@ -185,16 +148,16 @@ export default class BetManager {
 			.getPlayers()
 			.filter((x) => x.status !== MemberStatus.PLEITE)
 			.map((player) => ({
-				playerId: player.client.uuid,
-				bet: this.getBetValues(player.client.uuid),
-				chips: this.playerManger.getChips(player.client.uuid)
+				playerId: player.playerId,
+				bet: this.getBetValues(player.playerId),
+				chips: this.playerManger.getChips(player.playerId)
 			}));
 
 		const sidePots: SidePot[] = SidePotHelper.calculateSidePots(players);
 		const result = SidePotHelper.distributeChips(
 			sidePots,
 			wonPlayers,
-			this.playerManger.getPlayingPlayers().map((x) => x.client.uuid)
+			this.playerManger.getPlayingPlayers().map((x) => x.playerId)
 		);
 
 		result.forEach((result) => {
@@ -209,7 +172,7 @@ export default class BetManager {
 
 	private flushChips(): void {
 		this.playerManger.getPlayers().forEach((player) => {
-			const playerId = player.client.uuid;
+			const playerId = player.playerId;
 
 			this.playerManger.adjustChips(
 				playerId,

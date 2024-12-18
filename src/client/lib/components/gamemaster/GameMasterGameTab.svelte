@@ -3,18 +3,12 @@
 	import GroupBox from '../groupBox/GroupBox.svelte';
 	import { ArrayUtils } from '@poker-lib/utils/ArrayUtils';
 	import Select from '../select/Select.svelte';
-	import { FragenPhase } from '@poker-lib/message/ServerMessage';
 	import { App } from '@client/lib/services/GameManager';
-	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-	import { GameMasterAction } from '@poker-lib/message/ClientMessage';
 	import { gameMasterAutoChangePhase } from '@client/lib/stores/GameMasterStore';
+	import { FragenPhase } from '@poker-lib/enums/FragenPhase';
 
 	function updatePhase() {
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.CHANGE_PHASE,
-			phase: $gameStateStore.currentPhase
-		});
+		App.getInstance().Socket.emit('CHANGE_PHASE', $gameStateStore.currentPhase);
 	}
 
 	function announeWinner() {
@@ -22,18 +16,11 @@
 			throw new Error('Nur während der Antwort kann ein Gewinner verkündet werden!');
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.ANNOUNCE_WINNER
-		});
+		App.getInstance().Socket.emit('DRAW_WINNER');
 	}
 
 	function toggelAutomaticPhaseChanging() {
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING,
-			activated: $gameMasterAutoChangePhase
-		});
+		App.getInstance().Socket.emit('CHANGE_AUTOMATIC_PHASE_CHANGING', $gameMasterAutoChangePhase);
 	}
 </script>
 

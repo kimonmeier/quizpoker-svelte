@@ -1,6 +1,3 @@
-import type { ClientMessage } from '@poker-lib/message/ClientMessage.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
-import WebSocketConnection from '@server/connection/WebSocketConnection.ts';
 import PlayerManager from './PlayerManager.ts';
 import BetManager from './BetManager.ts';
 import SchaetzungManager from './SchaetzungManager.ts';
@@ -9,11 +6,20 @@ import { createInMemoryEventBus } from '@danielemariani/ts-event-bus';
 import type { EventDeclaration, QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import { RoundManager } from './RoundManager.ts';
 import { BlindManager } from './BlindManager.ts';
-import { ClientEvents } from "@poker-lib/enums/ClientEvents.ts";
-import { ServerEvents } from "@poker-lib/enums/ServerEvents.ts";
+import { Server, type Socket } from 'socket.io';
+import type { ClientToServerEvents } from '@poker-lib/message/ClientToServerEvents.ts';
+import type { ServerToClientEvents } from '@poker-lib/message/ServerToClientEvents.ts';
+import { HistoryManager } from './HistoryManager.ts';
+import { randomUUID } from 'node:crypto';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+
+export type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, object>;
+export type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, object>;
 
 export class App {
-	private readonly webSocket: WebSocketConnection;
+	private readonly webSocket: AppServer;
+	private readonly historyManager: HistoryManager;
+
 	private readonly betManager: BetManager;
 	private readonly playerManager: PlayerManager;
 	private readonly schaetzungManager: SchaetzungManager;
@@ -25,53 +31,58 @@ export class App {
 	public constructor() {
 		this.eventBus = createInMemoryEventBus<EventDeclaration>();
 
-		this.webSocket = new WebSocketConnection();
-		this.playerManager = new PlayerManager(this.webSocket, this.eventBus);
-		this.betManager = new BetManager(this.webSocket, this.eventBus, this.playerManager);
-		this.blindManager = new BlindManager(
-			this.webSocket,
-			this.eventBus,
-			this.playerManager,
-			this.betManager
-		);
+		this.webSocket = new Server<ClientToServerEvents, ServerToClientEvents, object, object>({
+			connectionStateRecovery: {}
+		});
+		this.historyManager = new HistoryManager(this.webSocket);
+
+		this.playerManager = new PlayerManager(this.historyManager, this.eventBus);
+		this.betManager = new BetManager(this.historyManager, this.eventBus, this.playerManager);
+		this.blindManager = new BlindManager(this.eventBus, this.playerManager, this.betManager);
+
 		this.controlsManager = new ControlsManager(
-			this.webSocket,
+			this.historyManager,
 			this.eventBus,
 			this.betManager,
 			this.playerManager,
 			this.blindManager
 		);
+
 		this.schaetzungManager = new SchaetzungManager(
-			this.webSocket,
+			this.historyManager,
 			this.eventBus,
-			this.playerManager
+			this.playerManager,
+			this.webSocket
 		);
-		this.roundManager = new RoundManager(this.webSocket, this.eventBus, this.playerManager);
+		this.roundManager = new RoundManager(this.historyManager, this.eventBus, this.playerManager);
 	}
 
 	public startApp(): void {
 		console.log('Websocket wurde gestartet!');
-
-		this.webSocket.connect();
-
-		this.webSocket.addListener('message', (client: WebSocketClient, message: ClientMessage) => {
-			console.log('Neue Nachricht vo dem Client: ' + client.ip);
-			console.log(message);
-
-			if (message.type == ClientEvents.SERVER_PING) {
-				client.send({
-					type: ServerEvents.PING,
-					ms: message.date - Date.now()
-				})
-			}
-
-			this.betManager.handleInputs(client, message);
-			this.controlsManager.handleInputs(client, message);
-			this.playerManager.handleInputs(client, message);
-			this.schaetzungManager.handleInputs(client, message);
-			this.roundManager.handleInputs(client, message);
+		this.webSocket.on('connect', () => {
+			console.log('Something is trying to connect');
 		});
+
+		this.webSocket.on('connect', async (socket) => {
+			const userId = randomUUID() as PlayerId;
+			socket.join(userId);
+
+			socket.on('disconnect', (reason) => {
+				console.log('Player disconnected because: ', reason);
+			});
+
+			this.historyManager.registerSocket(socket, userId);
+			this.betManager.registerSocket(socket, userId);
+			this.playerManager.registerSocket(socket, userId);
+			this.schaetzungManager.registerSocket(socket, userId);
+			this.controlsManager.registerSocket(socket, userId);
+			this.roundManager.registerSocket(socket, userId);
+		});
+
+		this.webSocket.listen(3000);
 	}
 
-	public stopApp(): void {}
+	public stopApp(): void {
+		this.webSocket.close();
+	}
 }

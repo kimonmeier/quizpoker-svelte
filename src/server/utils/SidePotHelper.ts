@@ -1,3 +1,4 @@
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { SidePot, SidePotPlayer, SidePotWinnerResult } from '@server/entities/Bet.ts';
 
 export abstract class SidePotHelper {
@@ -27,10 +28,10 @@ export abstract class SidePotHelper {
 
 	public static distributeChips(
 		sidePots: SidePot[],
-		winningPlayerIds: string[],
-		playingPlayerId: string[]
+		winningPlayerIds: PlayerId[],
+		playingPlayerId: PlayerId[]
 	): SidePotWinnerResult[] {
-		const results: { [playerId: string]: number } = {};
+		const results: { [playerId: PlayerId]: number } = {};
 
 		for (const sidePot of sidePots) {
 			// Filter winning players for this specific side pot
@@ -57,15 +58,18 @@ export abstract class SidePotHelper {
 				} else {
 					const chipsPerPlayer = sidePot.totalAmount / playingPlayersOfSidePot.length;
 					for (const player in playingPlayersOfSidePot) {
-						results[player] = (results[player] || 0) + chipsPerPlayer;
+						results[player as PlayerId] = (results[player as PlayerId] || 0) + chipsPerPlayer;
 					}
 				}
 			}
 		}
 
-		return Object.entries(results).map(([playerId, chipsWon]) => ({
-			playerId,
-			chipsWon
-		}));
+		const array: SidePotWinnerResult[] = [];
+		Object.entries(results).forEach(([playerId, chipsWon]) => {
+			const id = playerId as PlayerId;
+			array.push({ playerId: id, chipsWon });
+		});
+
+		return array;
 	}
 }

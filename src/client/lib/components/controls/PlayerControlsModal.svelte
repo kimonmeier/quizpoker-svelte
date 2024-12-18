@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { App } from '@client/lib/services/GameManager';
 	import Modal from '../modal/Modal.svelte';
-	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-	import { MemberAction } from '@poker-lib/message/ClientMessage';
 	import { minimumBet, playerWhichHasControl } from '@client/lib/stores/PlayerStore';
 	import { currentPlayerId } from '@client/lib/stores/CredentialStore';
 	import { chipStore } from '@client/lib/stores/GameStore';
@@ -22,10 +20,7 @@
 			throw new Error('Not allowed');
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.MITGLIED_ACTION,
-			action: MemberAction.FOLD
-		});
+		App.getInstance().Socket.emit('FOLD');
 
 		close();
 	}
@@ -39,10 +34,7 @@
 			throw new Error('Ungültige Eingabe');
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.MITGLIED_ACTION,
-			action: MemberAction.CHECK
-		});
+		App.getInstance().Socket.emit('CHECK');
 
 		close();
 	}
@@ -55,10 +47,7 @@
 			throw new Error('Ungültige Eingabe');
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.MITGLIED_ACTION,
-			action: MemberAction.CALL
-		});
+		App.getInstance().Socket.emit('CALL');
 
 		close();
 	}
@@ -76,11 +65,7 @@
 			raiseTo = currentChips!.chips + 50;
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.MITGLIED_ACTION,
-			action: MemberAction.RAISE,
-			valueTo: raiseTo
-		});
+		App.getInstance().Socket.emit('RAISE', raiseTo);
 
 		close();
 	}
@@ -98,10 +83,7 @@
 			return;
 		}
 
-		App.getInstance().sendMessage({
-			type: ClientEvents.SCHAETZUNG_ABGEBEN,
-			schaetzung: Math.floor(schaetzung)
-		});
+		App.getInstance().Socket.emit('SCHAETZUNG_ABGEBEN', Math.floor(schaetzung));
 
 		$schaetzungAbgegeben = true;
 	}

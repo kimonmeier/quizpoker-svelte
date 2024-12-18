@@ -4,11 +4,12 @@ import { schaetzungStore } from './SchaetzungenStore';
 import { chipStore } from './GameStore';
 import type { MemberStatus } from '@poker-lib/enums/MemberStatus';
 import StringHelper from '@poker-lib/utils/StringUtils';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
 
 interface PlayerStore extends Readable<PlayerModel[]> {
 	addPlayer: (player: PlayerModel) => void;
-	removePlayer: (playerId: string) => void;
-	updatePlayer: (playerId: string, status: MemberStatus) => void;
+	removePlayer: (playerId: PlayerId) => void;
+	updatePlayer: (playerId: PlayerId, status: MemberStatus) => void;
 	reset: () => void;
 }
 
@@ -30,7 +31,7 @@ function createPlayerStore(): PlayerStore {
 			schaetzungStore.addPlayer(player.id);
 			chipStore.addPlayer(player.id);
 		},
-		removePlayer: (playerId: string) => {
+		removePlayer: (playerId: PlayerId) => {
 			update((x) => {
 				return x.filter((x) => x.id != playerId).sort(comparePlayerFn);
 			});
@@ -38,7 +39,7 @@ function createPlayerStore(): PlayerStore {
 			schaetzungStore.removePlayer(playerId);
 			chipStore.removePlayer(playerId);
 		},
-		updatePlayer: (playerId: string, status: MemberStatus) =>
+		updatePlayer: (playerId: PlayerId, status: MemberStatus) =>
 			update((x) => {
 				console.log('UPDATE PLAYER');
 				x.find((z) => z.id == playerId)!.playerStatus = status;

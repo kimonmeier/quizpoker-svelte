@@ -1,29 +1,27 @@
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import type PlayerManager from './PlayerManager.ts';
-import type WebSocketConnection from '@server/connection/WebSocketConnection.ts';
-import { GameMasterAction, type ClientMessage } from '@poker-lib/message/ClientMessage.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
 import type { Frage } from '@server/entities/Frage.ts';
-import { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
-import { FragenPhase } from '@poker-lib/message/ServerMessage.ts';
-import { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
+import type { HistoryManager } from './HistoryManager.ts';
+import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { AppSocket } from './App.ts';
 
-export class RoundManager {
+export class RoundManager implements BasicManager {
 	private readonly playerManager: PlayerManager;
 	private readonly eventBus: QuizPokerEventBus;
-	private readonly connection: WebSocketConnection;
+	private readonly historyManager: HistoryManager;
 
 	private frage: Frage | null = null;
 	private currentPhase: FragenPhase | null = null;
 	private changeAutomaticPhase: boolean = true;
 
 	public constructor(
-		connection: WebSocketConnection,
+		historyManager: HistoryManager,
 		eventBus: QuizPokerEventBus,
 		playerManger: PlayerManager
 	) {
-		this.connection = connection;
+		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 		this.playerManager = playerManger;
 
@@ -33,53 +31,55 @@ export class RoundManager {
 		});
 	}
 
-	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
-		if (m.type == ClientEvents.GAME_MASTER_ACTION) {
-			switch (m.action) {
-				case GameMasterAction.PLAY_QUESTION:
-					const frage: Frage = {
-						frage: m.question,
-						hinweis1: m.hinweis_1,
-						hinweis2: m.hinweis_2,
-						einheit: m.einheit,
-						antwort: m.answer
-					};
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
+		socket
+			.on('PLAY_QUESTION', (question, hinweis_1, hinweis_2, answer, einheit) =>
+				this.constructNewQuestion(question, hinweis_1, hinweis_2, answer, einheit)
+			)
+			.on('CHANGE_PHASE', (phase) => this.changePhase(phase))
+			.on(
+				'CHANGE_AUTOMATIC_PHASE_CHANGING',
+				(activated) => (this.changeAutomaticPhase = activated)
+			);
+	}
 
-					this.playNewQuestion(frage);
-					break;
-				case GameMasterAction.CHANGE_PHASE:
-					this.currentPhase = m.phase;
+	private constructNewQuestion(
+		question: string,
+		hinweis_1: string,
+		hinweis_2: string,
+		answer: string,
+		einheit?: string
+	): void {
+		const frage: Frage = {
+			frage: question,
+			hinweis1: hinweis_1,
+			hinweis2: hinweis_2,
+			einheit: einheit,
+			antwort: answer
+		};
 
-					this.connection.broadcast({
-						type: ServerEvents.NAECHSTE_PHASE,
-						phase: m.phase,
-						value: this.getTextByPhase(m.phase)
-					});
+		this.playNewQuestion(frage);
+	}
 
-					this.eventBus.dispatch({
-						event: {
-							type: 'PHASE-TRIGGERED',
-							payload: m.phase
-						}
-					});
-					break;
-				case GameMasterAction.CHANGE_AUTOMATIC_PHASE_CHANGING:
-					this.changeAutomaticPhase = m.activated;
-					break;
+	private changePhase(phase: FragenPhase): void {
+		this.currentPhase = phase;
+
+		this.historyManager.SendAndSaveToHistory('CHANGE_GAME_PHASE', phase);
+
+		this.eventBus.dispatch({
+			event: {
+				type: 'PHASE-TRIGGERED',
+				payload: phase
 			}
-		}
+		});
 	}
 
 	private playNewQuestion(frage: Frage): void {
 		this.frage = frage;
 		this.currentPhase = FragenPhase.FRAGE;
 
-		this.connection.broadcast({
-			type: ServerEvents.NAECHSTE_FRAGE,
-			einheit: frage.einheit,
-			frage: frage.frage,
-			phase: FragenPhase.FRAGE
-		});
+		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_QUESTION', frage.frage, frage.einheit);
 
 		this.eventBus.dispatch({
 			event: {
@@ -129,11 +129,7 @@ export class RoundManager {
 
 		this.currentPhase = nextPhase;
 
-		this.connection.broadcast({
-			type: ServerEvents.NAECHSTE_PHASE,
-			phase: nextPhase,
-			value
-		});
+		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_PHASE', nextPhase, value);
 
 		this.eventBus.dispatch({
 			event: {
@@ -141,24 +137,5 @@ export class RoundManager {
 				payload: nextPhase
 			}
 		});
-	}
-
-	private getTextByPhase(fragenPhase: FragenPhase): string | undefined {
-		if (!this.frage) {
-			return undefined;
-		}
-
-		switch (fragenPhase) {
-			case FragenPhase.FRAGE:
-				return this.frage.frage;
-			case FragenPhase.RUNDE_1:
-				return this.frage.hinweis1;
-			case FragenPhase.RUNDE_2:
-				return this.frage.hinweis2;
-			case FragenPhase.ANTWORT:
-				return this.frage.antwort;
-			default:
-				return undefined;
-		}
 	}
 }

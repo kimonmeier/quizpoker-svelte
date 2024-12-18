@@ -1,38 +1,33 @@
-import type WebSocketConnection from '@server/connection/WebSocketConnection.ts';
 import type PlayerManager from './PlayerManager.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
-import {
-	GameMasterAction,
-	MemberAction,
-	type ClientMessage
-} from '@poker-lib/message/ClientMessage.ts';
-import { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import type BetManager from './BetManager.ts';
 import type { BlindManager } from './BlindManager.ts';
-import { FragenPhase } from '@poker-lib/message/ServerMessage.ts';
+import type { HistoryManager } from './HistoryManager.ts';
+import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { AppSocket } from './App.ts';
 
-export class ControlsManager {
-	private readonly connection: WebSocketConnection;
+export class ControlsManager implements BasicManager {
+	private readonly historyManager: HistoryManager;
 	private readonly playerManager: PlayerManager;
 	private readonly betManager: BetManager;
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly blindManager: BlindManager;
 
-	private currentPlayerInControl: string | null = null;
+	private currentPlayerInControl: PlayerId | null = null;
 	private players: Map<string, number> = new Map();
-	private lastPlayerToBet: string | null = null;
-	private bigBlindId: string | null = null;
+	private lastPlayerToBet: PlayerId | null = null;
+	private bigBlindId: PlayerId | null = null;
 
 	public constructor(
-		connection: WebSocketConnection,
+		historyManager: HistoryManager,
 		eventBus: QuizPokerEventBus,
 		betManager: BetManager,
 		playerManager: PlayerManager,
 		blindManager: BlindManager
 	) {
-		this.connection = connection;
+		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 		this.betManager = betManager;
 		this.playerManager = playerManager;
@@ -66,71 +61,69 @@ export class ControlsManager {
 		});
 	}
 
-	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
-		switch (m.type) {
-			case ClientEvents.MEMBER_LOGIN:
-				this.players.set(client.uuid, 0);
-				break;
-			case ClientEvents.MEMBER_LEAVT:
-				this.players.delete(client.uuid);
-				break;
-			case ClientEvents.GAME_MASTER_ACTION:
-				switch (m.action) {
-					case GameMasterAction.CONTROLS_SELECTED:
-						console.log('Controls SELECTED');
-						const lastPlayerId = this.currentPlayerInControl;
-						this.takePlayerControls();
+	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
+		socket
+			.on('disconnect', () => this.players.delete(uuid))
+			.on('PLAYER_CONNECTING', () => this.players.set(uuid, 0))
+			.on('GIVE_PLAYER_CONTROLS', (playerId) => this.givePlayerControlsByGameMaster(playerId))
+			.on('CHANGE_PHASE', (phase) => this.changePhase(phase))
+			.on('RAISE', () => this.raise(uuid))
+			.on('FOLD', () => this.fold())
+			.on('CHECK', () => this.moveControlsForward())
+			.on('CALL', () => this.moveControlsForward());
+	}
 
-						if (lastPlayerId == null) {
-							this.givePlayerControls(m.member_id, this.bigBlindId);
-						} else if (lastPlayerId != m.member_id) {
-							this.givePlayerControls(m.member_id, lastPlayerId);
-						}
+	private givePlayerControlsByGameMaster(playerId: PlayerId): void {
+		console.log('Controls SELECTED');
+		const lastPlayerId = this.currentPlayerInControl;
+		this.takePlayerControls();
 
-						break;
-					case GameMasterAction.CHANGE_PHASE:
-						this.takePlayerControls();
-
-						if (m.phase == FragenPhase.PAUSE) {
-							break;
-						}
-
-						if (this.playerManager.getPlayingPlayers().length == 1) {
-							break;
-						}
-
-						this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
-						this.lastPlayerToBet = this.currentPlayerInControl!;
-						break;
-				}
-				break;
-			case ClientEvents.MITGLIED_ACTION:
-				if (m.action === MemberAction.RAISE) {
-					this.lastPlayerToBet = client.uuid;
-				}
-
-				if (m.action === MemberAction.FOLD) {
-					setTimeout(() => {
-						if (this.playerManager.getPlayingPlayers().length == 1) {
-							this.takePlayerControls();
-						}
-					}, 500);
-				}
-
-				this.moveControlsForward();
-				break;
+		if (lastPlayerId == null) {
+			this.givePlayerControls(playerId, this.bigBlindId);
+		} else if (lastPlayerId != playerId) {
+			this.givePlayerControls(playerId, lastPlayerId);
 		}
 	}
 
-	private givePlayerControls(playerId: string, lastPlayerId: string | null): void {
+	private changePhase(phase: FragenPhase): void {
+		this.takePlayerControls();
+
+		if (phase == FragenPhase.PAUSE) {
+			return;
+		}
+
+		if (this.playerManager.getPlayingPlayers().length == 1) {
+			return;
+		}
+
+		this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
+		this.lastPlayerToBet = this.currentPlayerInControl!;
+	}
+
+	private raise(playerId: PlayerId): void {
+		this.lastPlayerToBet = playerId;
+		this.moveControlsForward();
+	}
+
+	private fold(): void {
+		setTimeout(() => {
+			if (this.playerManager.getPlayingPlayers().length == 1) {
+				this.takePlayerControls();
+			} else {
+				this.moveControlsForward();
+			}
+		}, 500);
+	}
+
+	private givePlayerControls(playerId: PlayerId, lastPlayerId: PlayerId | null): void {
 		this.currentPlayerInControl = playerId;
 		this.players.set(playerId, Date.now());
 
-		this.connection.broadcast({
-			type: ServerEvents.GIVE_PLAYER_CONTROLS,
-			member_id: playerId,
-			minimumBet: this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getBigBlind()) + 50
-		});
+		this.historyManager.SendAndSaveToHistory(
+			'GIVE_PLAYER_CONTROLS',
+			playerId,
+			this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getBigBlind()) + 50
+		);
 	}
 
 	private takePlayerControls(): void {
@@ -138,10 +131,7 @@ export class ControlsManager {
 			return;
 		}
 
-		this.connection.broadcast({
-			type: ServerEvents.TAKE_PLAYER_CONTROLS,
-			member_id: this.currentPlayerInControl
-		});
+		this.historyManager.SendAndSaveToHistory('TAKE_PLAYER_CONTROLS', this.currentPlayerInControl);
 
 		this.currentPlayerInControl = null;
 	}
@@ -181,18 +171,18 @@ export class ControlsManager {
 		this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
 	}
 
-	private findNextPlayerId(startId: string): string | undefined {
+	private findNextPlayerId(startId: PlayerId): PlayerId | undefined {
 		const playingPlayers = this.playerManager.getPlayingPlayers();
 
 		let count = 0;
-		let playerId: string | undefined | null = startId;
+		let playerId: PlayerId | undefined | null = startId;
 		do {
-			let indexLastPlayer = playingPlayers.findIndex((x) => x.client.uuid == playerId) + 1;
+			let indexLastPlayer = playingPlayers.findIndex((x) => x.playerId == playerId) + 1;
 			if (indexLastPlayer >= playingPlayers.length) {
 				indexLastPlayer = 0;
 			}
 
-			playerId = playingPlayers.at(indexLastPlayer)?.client.uuid;
+			playerId = playingPlayers.at(indexLastPlayer)?.playerId;
 
 			if (!playerId) {
 				console.log('Something went wrong, no player found');

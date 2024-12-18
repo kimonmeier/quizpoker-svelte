@@ -1,13 +1,14 @@
 import { writable, type Readable } from 'svelte/store';
 import type { ChipsModel } from '../models/Chips';
 import type { GameState } from '../models/Poker';
-import { FragenPhase } from '@poker-lib/message/ServerMessage';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
+import { FragenPhase } from '@poker-lib/enums/FragenPhase';
 
 interface ChipsStore extends Readable<ChipsModel[]> {
-	setChips: (playerId: string, chips: number) => void;
-	setBet: (playerId: string, bet: number) => void;
-	addPlayer: (playerId: string) => void;
-	removePlayer: (playerId: string) => void;
+	setChips: (playerId: PlayerId, chips: number) => void;
+	setBet: (playerId: PlayerId, bet: number) => void;
+	addPlayer: (playerId: PlayerId) => void;
+	removePlayer: (playerId: PlayerId) => void;
 }
 
 function createChipsStore(): ChipsStore {
@@ -15,7 +16,7 @@ function createChipsStore(): ChipsStore {
 
 	return {
 		subscribe,
-		setChips: (playerId: string, chips: number) => {
+		setChips: (playerId: PlayerId, chips: number) => {
 			update((x) => {
 				const playerEntry = x.find((z) => z.playerId == playerId);
 
@@ -28,7 +29,7 @@ function createChipsStore(): ChipsStore {
 				return x;
 			});
 		},
-		setBet: (playerId: string, bet?: number) => {
+		setBet: (playerId: PlayerId, bet?: number) => {
 			update((x) => {
 				const playerEntry = x.find((z) => z.playerId == playerId);
 
@@ -41,7 +42,7 @@ function createChipsStore(): ChipsStore {
 				return x;
 			});
 		},
-		addPlayer: (playerId: string) => {
+		addPlayer: (playerId: PlayerId) => {
 			update((x) => {
 				x.push({ playerId, chips: 10_000 });
 				return x;

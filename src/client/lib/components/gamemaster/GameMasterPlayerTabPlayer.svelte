@@ -3,38 +3,23 @@
 	import { chipStore } from '@client/lib/stores/GameStore';
 	import { playerStore, playerWhichHasControl } from '@client/lib/stores/PlayerStore';
 	import { schaetzungStore } from '@client/lib/stores/SchaetzungenStore';
-	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-	import { GameMasterAction } from '@poker-lib/message/ClientMessage';
+	import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
 
-	export let playerId: string;
+	export let playerId: PlayerId;
 
 	let currentChips = 0;
 	let currentBet = 0;
 
 	function betChanged(): void {
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.UPDATE_MEMBER,
-			memberId: playerId,
-			einsatz: currentBet
-		});
+		App.getInstance().Socket.emit('UPDATE_PLAYER_EINSATZ', playerId, currentBet);
 	}
 
 	function chipsChanged(): void {
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.UPDATE_MEMBER,
-			memberId: playerId,
-			chips: currentChips
-		});
+		App.getInstance().Socket.emit('UPDATE_PLAYER_CHIPS', playerId, currentBet);
 	}
 
 	function toggleControl(): void {
-		App.getInstance().sendMessage({
-			type: ClientEvents.GAME_MASTER_ACTION,
-			action: GameMasterAction.CONTROLS_SELECTED,
-			member_id: playerId
-		});
+		App.getInstance().Socket.emit('GIVE_PLAYER_CONTROLS', playerId);
 	}
 
 	$: currentPlayer = $playerStore.find((x) => x.id == playerId);

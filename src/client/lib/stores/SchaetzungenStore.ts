@@ -1,11 +1,12 @@
 import { writable, type Readable } from 'svelte/store';
 import type { Schaetzung } from '../models/Schaetzung';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
 
 interface SchaetzungStore extends Readable<Schaetzung[]> {
-	setSchaetzung: (playerId: string, schaetzung: number) => void;
+	setSchaetzung: (playerId: PlayerId, schaetzung: number) => void;
 	clearSchaetzungen: () => void;
-	addPlayer: (playerId: string) => void;
-	removePlayer: (playerId: string) => void;
+	addPlayer: (playerId: PlayerId) => void;
+	removePlayer: (playerId: PlayerId) => void;
 }
 
 function createSchaetzungStore(): SchaetzungStore {
@@ -21,19 +22,19 @@ function createSchaetzungStore(): SchaetzungStore {
 			});
 			schaetzungAbgegeben.set(false);
 		},
-		setSchaetzung: (playerId: string, schaetzung: number) =>
+		setSchaetzung: (playerId: PlayerId, schaetzung: number) =>
 			update((x) => {
 				x.find((z) => z.playerId == playerId)!.schaetzung = schaetzung;
 
 				return x;
 			}),
-		addPlayer: (playerId: string) => {
+		addPlayer: (playerId: PlayerId) => {
 			update((x) => {
 				x.push({ playerId });
 				return x;
 			});
 		},
-		removePlayer: (playerId: string) => {
+		removePlayer: (playerId: PlayerId) => {
 			update((x) => x.filter((z) => z.playerId != playerId));
 		}
 	};

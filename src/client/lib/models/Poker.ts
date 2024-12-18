@@ -1,5 +1,5 @@
-import type { FragenPhase } from '@poker-lib/message/ServerMessage';
-import type { Frage } from './Frage';
+import type { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
+import type { Frage } from './Frage.ts';
 
 export interface GameState {
 	currentPhase: FragenPhase;

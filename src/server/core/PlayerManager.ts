@@ -1,26 +1,21 @@
-import { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
-import {
-	GameMasterAction,
-	MemberAction,
-	type ClientMessage
-} from '@poker-lib/message/ClientMessage.ts';
 import StringHelper from '@poker-lib/utils/StringUtils.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
-import type WebSocketConnection from '@server/connection/WebSocketConnection.ts';
 import type { Player } from '@server/entities/Player.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
+import type { HistoryManager } from './HistoryManager.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { AppSocket } from './App.ts';
 
-export default class PlayerManager {
-	private readonly connection: WebSocketConnection;
+export default class PlayerManager implements BasicManager {
+	private readonly historyManager: HistoryManager;
 	private readonly eventBus: QuizPokerEventBus;
 
-	private players: Map<WebSocketClient, Player> = new Map();
+	private players: Map<PlayerId, Player> = new Map();
 	private chips: Map<string, number> = new Map();
 
-	public constructor(connection: WebSocketConnection, eventBus: QuizPokerEventBus) {
-		this.connection = connection;
+	public constructor(historyManager: HistoryManager, eventBus: QuizPokerEventBus) {
+		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 
 		this.eventBus.registerToEvent({
@@ -33,104 +28,71 @@ export default class PlayerManager {
 						return;
 					}
 
-					const chips = this.getChips(player.client.uuid);
+					const chips = this.getChips(player.playerId);
 					if (chips == 0) {
 						player.status = MemberStatus.PLEITE;
 					} else {
 						player.status = MemberStatus.ON;
 					}
 
-					this.players.set(player.client, player);
+					this.players.set(player.playerId, player);
 
-					this.connection.broadcast({
-						type: ServerEvents.UPDATED_MITGLIED_VALUES,
-						id: player.client.uuid,
-						status: player.status
-					});
+					this.historyManager.SendAndSaveToHistory(
+						'STATUS_CHANGED',
+						player.playerId,
+						player.status
+					);
 				});
 			}
 		});
 	}
 
-	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
-		switch (m.type) {
-			case ClientEvents.MEMBER_LOGIN:
-				this.players.set(client, {
-					client,
-					name: m.name,
-					link: m.link,
-					status: MemberStatus.ON
-				});
-
-				this.chips.set(client.uuid, 10_000);
-
-				this.connection.broadcast({
-					type: ServerEvents.NEW_MITGLIED,
-					id: client.uuid,
-					name: m.name,
-					link: m.link
-				});
-
-				client.send({
-					type: ServerEvents.MITGLIED_SUCCESSFULL_LOGIN,
-					id: client.uuid
-				});
-				break;
-			case ClientEvents.MEMBER_LEAVT:
-				this.chips.delete(client.uuid);
-
-				this.players.delete(client);
-
-				this.connection.broadcast({
-					type: ServerEvents.REMOVED_MITGLIED,
-					id: client.uuid
-				});
-				break;
-			case ClientEvents.MITGLIED_ACTION:
-				if (m.action != MemberAction.FOLD) {
-					break;
-				}
-				const player = this.getPlayerByUuid(client.uuid);
-				player.status = MemberStatus.FOLDED;
-				this.players.set(client, player);
-
-				this.connection.broadcast({
-					type: ServerEvents.UPDATED_MITGLIED_VALUES,
-					id: client.uuid,
-					status: MemberStatus.FOLDED
-				});
-				break;
-
-			case ClientEvents.GAME_MASTER_ACTION:
-				if (m.action != GameMasterAction.UPDATE_MEMBER) {
-					break;
-				}
-
-				if (m.chips == null) {
-					break;
-				}
-
-				this.adjustChips(m.memberId, m.chips);
-				break;
-
-			case ClientEvents.GAMEMASTER_LOGIN:
-				this.connection.broadcast({
-					type: ServerEvents.GAMEMASTER_LOGIN,
-					link: m.link
-				});
-
-				client.send({
-					type: ServerEvents.MITGLIED_SUCCESSFULL_LOGIN,
-					id: client.uuid
-				});
-				break;
-		}
+	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
+		socket
+			.on('disconnect', () => this.disconnectPlayer(uuid))
+			.on('PLAYER_CONNECTING', (name, link, callback) =>
+				callback(this.connectPlayer(uuid, name, link))
+			)
+			.on('FOLD', () => this.fold(uuid))
+			.on('UPDATE_PLAYER_CHIPS', (playerId, chips) => this.adjustChips(playerId, chips))
+			.on('GAME_MASTER_CONNECTING', (link, callback) => {
+				this.historyManager.SendAndSaveToHistory('GAMEMASTER_LOGIN', link);
+				callback(uuid);
+			});
 	}
 
-	public getPlayerByUuid(uuid: string): Player {
-		return this.players.get(
-			this.connection.clients.find((x) => x.uuid == uuid) as WebSocketClient
-		)!;
+	private connectPlayer(playerId: PlayerId, name: string, link: string): PlayerId {
+		this.players.set(playerId, {
+			playerId: playerId,
+			name: name,
+			link: link,
+			status: MemberStatus.ON
+		});
+
+		this.chips.set(playerId, 10_000);
+		this.historyManager.SendAndSaveToHistory('PLAYER_JOINED', playerId, name, link);
+
+		return playerId;
+	}
+
+	private disconnectPlayer(playerId: PlayerId): void {
+		this.chips.delete(playerId);
+
+		this.players.delete(playerId);
+
+		this.historyManager.SendAndSaveToHistory('PLAYER_LEFT', playerId);
+	}
+
+	private fold(playerId: PlayerId): void {
+		const player = this.getPlayerByUuid(playerId);
+		player.status = MemberStatus.FOLDED;
+		this.players.set(playerId, player);
+
+		this.historyManager.SendAndSaveToHistory('STATUS_CHANGED', playerId, MemberStatus.FOLDED);
+	}
+
+	public getPlayerByUuid(uuid: PlayerId): Player {
+		return this.players.get(uuid)!;
 	}
 
 	public getPlayers(): Player[] {
@@ -146,20 +108,16 @@ export default class PlayerManager {
 	public resetFoldedPlayer(): void {}
 
 	private comparePlayerFn(player1: Player, player2: Player): number {
-		return StringHelper.hashCode(player1.client.uuid) - StringHelper.hashCode(player2.client.uuid);
+		return StringHelper.hashCode(player1.playerId) - StringHelper.hashCode(player2.playerId);
 	}
 
 	public getChips(playerId: string): number {
 		return this.chips.get(playerId) ?? 0;
 	}
 
-	public adjustChips(playerId: string, chipsAmount: number): void {
+	public adjustChips(playerId: PlayerId, chipsAmount: number): void {
 		this.chips.set(playerId, chipsAmount);
 
-		this.connection.broadcast({
-			type: ServerEvents.UPDATED_MITGLIED_VALUES,
-			id: playerId,
-			chips: chipsAmount
-		});
+		this.historyManager.SendAndSaveToHistory('CHIPS_CHANGED', playerId, chipsAmount);
 	}
 }

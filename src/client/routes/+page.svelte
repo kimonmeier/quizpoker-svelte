@@ -3,8 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { App } from '$lib/services/GameManager';
-	import { ClientEvents } from '@poker-lib/enums/ClientEvents';
-	import { isGamemaster, isLoggedIn } from '$lib/stores/CredentialStore';
+	import { currentPlayerId, isGamemaster, isLoggedIn } from '$lib/stores/CredentialStore';
 	import ErrorMessage from '$lib/components/alerts/ErrorMessage.svelte';
 
 	let errors: string | undefined;
@@ -29,15 +28,18 @@
 		} else {
 			errors = undefined;
 			if ($page.url.searchParams.has('gamemaster')) {
-				App.getInstance().sendMessage({
-					type: ClientEvents.GAMEMASTER_LOGIN,
-					link: link
+				App.getInstance().Socket.emit('GAME_MASTER_CONNECTING', link, (playerId) => {
+					currentPlayerId.set(playerId!);
+					isLoggedIn.set(true);
+
+					goto('gamemaster');
 				});
 			} else {
-				App.getInstance().sendMessage({
-					type: ClientEvents.MEMBER_LOGIN,
-					name: username,
-					link: link
+				App.getInstance().Socket.emit('PLAYER_CONNECTING', username, link, (playerId) => {
+					currentPlayerId.set(playerId!);
+					isLoggedIn.set(true);
+
+					goto('play');
 				});
 			}
 		}
@@ -50,7 +52,7 @@
 		const connected = await App.getInstance().awaitConnection(10);
 		console.log('IsConnected:', connected);
 
-		return App.getInstance().isConnected;
+		return App.getInstance().IsConnected;
 	}
 
 	onMount(() => {

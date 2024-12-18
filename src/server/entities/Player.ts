@@ -1,8 +1,8 @@
 import type { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 
 export interface Player {
-	client: WebSocketClient;
+	playerId: PlayerId;
 	name: string;
 	link: string;
 	status: MemberStatus;

@@ -1,30 +1,32 @@
-import { GameMasterAction, type ClientMessage } from '@poker-lib/message/ClientMessage.ts';
-import type WebSocketClient from '@server/connection/WebSocketClient.ts';
-import type WebSocketConnection from '@server/connection/WebSocketConnection.ts';
 import type PlayerManager from './PlayerManager.ts';
-import { ClientEvents } from '@poker-lib/enums/ClientEvents.ts';
-import { ServerEvents } from '@poker-lib/enums/ServerEvents.ts';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
-import { FragenPhase } from '@poker-lib/message/ServerMessage.ts';
+import type { HistoryManager } from './HistoryManager.ts';
+import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { AppServer, AppSocket } from './App.ts';
 
-export default class SchaetzungManager {
-	private readonly connection: WebSocketConnection;
+export default class SchaetzungManager implements BasicManager {
+	private readonly historyManager: HistoryManager;
+	private readonly server: AppServer;
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly playerManager: PlayerManager;
 
-	private schaetzungen: Map<string, number> = new Map();
+	private schaetzungen: Map<PlayerId, number> = new Map();
 	private gameMasterId: string | null = null;
 	private correctAnswer: number | null = null;
 
 	public constructor(
-		connection: WebSocketConnection,
+		historyManager: HistoryManager,
 		eventBus: QuizPokerEventBus,
-		playerManager: PlayerManager
+		playerManager: PlayerManager,
+		server: AppServer
 	) {
-		this.connection = connection;
+		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 		this.playerManager = playerManager;
+		this.server = server;
 
 		this.eventBus.registerToEvent({
 			event: 'PHASE-TRIGGERED',
@@ -38,48 +40,41 @@ export default class SchaetzungManager {
 		});
 	}
 
-	public handleInputs(client: WebSocketClient, m: ClientMessage): void {
-		switch (m.type) {
-			case ClientEvents.GAMEMASTER_LOGIN:
-				this.gameMasterId = client.uuid;
-				break;
-			case ClientEvents.SCHAETZUNG_ABGEBEN:
-				this.schaetzungen.set(client.uuid, m.schaetzung);
+	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
+		socket
+			.on('GAME_MASTER_CONNECTING', () => this.gameMasterConnecting(socket, uuid))
+			.on('SCHAETZUNG_ABGEBEN', (schaetzung) => this.schaetzungAbgeben(uuid, schaetzung))
+			.on(
+				'PLAY_QUESTION',
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				(question, hinweis_1, hinweis_2, answer, einheit) =>
+					(this.correctAnswer = Number.parseInt(answer))
+			)
+			.on('DRAW_WINNER', () => this.findWinner());
+	}
 
-				this.connection.clients
-					.find((x) => x.uuid == this.gameMasterId)
-					?.send({
-						type: ServerEvents.MEMBER_ISSUED_SCHAETZUNG,
-						id: client.uuid,
-						schaetzung: m.schaetzung
-					});
-				break;
-			case ClientEvents.GAME_MASTER_ACTION:
-				if (m.action == GameMasterAction.PLAY_QUESTION) {
-					this.correctAnswer = Number.parseInt(m.answer);
-					break;
-				}
+	private gameMasterConnecting(socket: AppSocket, playerId: PlayerId): void {
+		this.gameMasterId = playerId;
 
-				if (m.action != GameMasterAction.ANNOUNCE_WINNER) {
-					break;
-				}
+		socket.join('game-master');
+	}
 
-				this.findWinner();
-				break;
-		}
+	private schaetzungAbgeben(playerId: PlayerId, schaetzung: number): void {
+		this.schaetzungen.set(playerId, schaetzung);
+
+		this.server.to('game-master').emit('MEMBER_ISSUED_SCHAETZUNG', playerId, schaetzung);
 	}
 
 	private revealSchaetzungen(): void {
 		const currentlyPlayingClients = this.playerManager
 			.getPlayers()
 			.filter((x) => x.status != MemberStatus.PLEITE)
-			.map((x) => x.client);
+			.map((x) => x.playerId);
 
 		this.schaetzungen.forEach((schaetzung, clientId) => {
-			this.connection.broadcastExcept(
-				{ type: ServerEvents.MEMBER_ISSUED_SCHAETZUNG, id: clientId, schaetzung: schaetzung },
-				...currentlyPlayingClients
-			);
+			this.server
+				.except(currentlyPlayingClients)
+				.emit('MEMBER_ISSUED_SCHAETZUNG', clientId, schaetzung);
 		});
 	}
 
@@ -92,13 +87,13 @@ export default class SchaetzungManager {
 			this.eventBus.dispatch({
 				event: {
 					type: 'PLAYER-WON-ROUND',
-					payload: this.playerManager.getPlayingPlayers().map((x) => x.client.uuid)
+					payload: this.playerManager.getPlayingPlayers().map((x) => x.playerId)
 				}
 			});
 			return;
 		}
 
-		let winnerIds: string[] = [];
+		let winnerIds: PlayerId[] = [];
 		let winnerNumber: number | null = null;
 
 		Array.from(this.schaetzungen.entries()).forEach((x) => {

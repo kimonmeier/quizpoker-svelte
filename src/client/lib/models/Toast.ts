@@ -1,8 +1,9 @@
-import { MemberAction } from '@poker-lib/message/ClientMessage';
+import { MemberAction } from '@poker-lib/enums/MemberAction.ts';
+import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 
 interface ToastModelNoValue {
 	toastId: string;
-	playerId: string;
+	playerId: PlayerId;
 	type: ToastType.FOLD | ToastType.CHECK;
 }
 
@@ -30,7 +31,7 @@ export function parseToastType(nemberAction: MemberAction): ToastType {
 			return ToastType.CHECK;
 		case MemberAction.RAISE:
 			return ToastType.RAISE;
-		case MemberAction.FOLD:
+		case MemberAction.FOLDED:
 			return ToastType.FOLD;
 	}
 }
