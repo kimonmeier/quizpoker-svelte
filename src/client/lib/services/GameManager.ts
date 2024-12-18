@@ -93,7 +93,10 @@ export class App {
 			.on('SHOW_TOAST', (playerId, action, value) => this.showToast(playerId, action, value))
 			.on('CHANGE_POT', (pot) => gamePot.set(pot))
 			.on('DISPLAY_NEXT_QUESTION', (frage, einheit) => this.displayNextQuestion(frage, einheit))
-			.on('DISPLAY_NEXT_PHASE', (phase, value) => this.displayNextPhase(phase, value));
+			.on('DISPLAY_NEXT_PHASE', (phase, value) => this.displayNextPhase(phase, value))
+			.on('REPORT_VISIBILITY_CHANGED', (playerId, visible) =>
+				playerStore.playerChangePage(playerId, visible)
+			);
 
 		socket.io.on('reconnect', (attempt) =>
 			console.log(`Attempt to reconnect for the ${attempt} time!`)
@@ -106,7 +109,8 @@ export class App {
 			id: playerId,
 			name: name,
 			link: link,
-			playerStatus: MemberStatus.ON
+			playerStatus: MemberStatus.ON,
+			isOnPage: true
 		});
 	}
 

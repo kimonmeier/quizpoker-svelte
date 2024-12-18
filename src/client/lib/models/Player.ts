@@ -6,4 +6,5 @@ export interface PlayerModel {
 	name: string;
 	link: string;
 	playerStatus: MemberStatus;
+	isOnPage: boolean;
 }

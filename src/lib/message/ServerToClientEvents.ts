@@ -32,4 +32,6 @@ export interface ServerToClientEvents {
 	GAMEMASTER_LOGIN: (link: string) => void;
 
 	CHANGE_GAME_PHASE: (phase: GamePhase) => void;
+
+	REPORT_VISIBILITY_CHANGED: (playerId: PlayerId, visible: boolean) => void;
 }

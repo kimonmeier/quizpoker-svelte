@@ -45,7 +45,8 @@ export class App {
 			this.eventBus,
 			this.betManager,
 			this.playerManager,
-			this.blindManager
+			this.blindManager,
+			this.webSocket
 		);
 
 		this.schaetzungManager = new SchaetzungManager(

@@ -6,10 +6,11 @@ import type { HistoryManager } from './HistoryManager.ts';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { BasicManager } from './BasicManager.ts';
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
-import type { AppSocket } from './App.ts';
+import type { AppServer, AppSocket } from './App.ts';
 
 export class ControlsManager implements BasicManager {
 	private readonly historyManager: HistoryManager;
+	private readonly server: AppServer;
 	private readonly playerManager: PlayerManager;
 	private readonly betManager: BetManager;
 	private readonly eventBus: QuizPokerEventBus;
@@ -25,13 +26,15 @@ export class ControlsManager implements BasicManager {
 		eventBus: QuizPokerEventBus,
 		betManager: BetManager,
 		playerManager: PlayerManager,
-		blindManager: BlindManager
+		blindManager: BlindManager,
+		appServer: AppServer
 	) {
 		this.historyManager = historyManager;
 		this.eventBus = eventBus;
 		this.betManager = betManager;
 		this.playerManager = playerManager;
 		this.blindManager = blindManager;
+		this.server = appServer;
 
 		this.eventBus.registerToEvent({
 			event: 'BIG-BLIND-SET',
@@ -70,7 +73,10 @@ export class ControlsManager implements BasicManager {
 			.on('RAISE', () => this.raise(uuid))
 			.on('FOLD', () => this.fold())
 			.on('CHECK', () => this.moveControlsForward())
-			.on('CALL', () => this.moveControlsForward());
+			.on('CALL', () => this.moveControlsForward())
+			.on('REPORT_VISIBILITY_CHANGED', (visible) =>
+				this.server.to('game-master').emit('REPORT_VISIBILITY_CHANGED', uuid, visible)
+			);
 	}
 
 	private givePlayerControlsByGameMaster(playerId: PlayerId): void {

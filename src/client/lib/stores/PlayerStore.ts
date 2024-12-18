@@ -10,6 +10,7 @@ interface PlayerStore extends Readable<PlayerModel[]> {
 	addPlayer: (player: PlayerModel) => void;
 	removePlayer: (playerId: PlayerId) => void;
 	updatePlayer: (playerId: PlayerId, status: MemberStatus) => void;
+	playerChangePage: (playerId: PlayerId, isOnPage: boolean) => void;
 	reset: () => void;
 }
 
@@ -43,6 +44,11 @@ function createPlayerStore(): PlayerStore {
 			update((x) => {
 				console.log('UPDATE PLAYER');
 				x.find((z) => z.id == playerId)!.playerStatus = status;
+				return x.sort(comparePlayerFn);
+			}),
+		playerChangePage: (playerId: PlayerId, isOnPage: boolean) =>
+			update((x) => {
+				x.find((z) => z.id == playerId)!.isOnPage = isOnPage;
 				return x.sort(comparePlayerFn);
 			}),
 		reset: () => set([])

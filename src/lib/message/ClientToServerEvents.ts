@@ -45,4 +45,6 @@ export interface ClientToServerEvents {
 	CHANGE_PHASE: (phase: FragenPhase) => void;
 
 	CHANGE_AUTOMATIC_PHASE_CHANGING: (activated: boolean) => void;
+
+	REPORT_VISIBILITY_CHANGED: (visible: boolean) => void;
 }

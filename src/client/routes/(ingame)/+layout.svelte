@@ -7,13 +7,21 @@
 	import { playerStore } from '@client/lib/stores/PlayerStore';
 	import Icon from '@iconify/svelte';
 	import BackgroundVideo from '@client/lib/assets/background.mp4';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { videoActivated } from '@client/lib/stores/SettingStore';
+	import { CheatingDetector } from '@client/lib/services/CheatingManager';
 
 	let steuerungVisible = false;
 
+	const cheatingDetector = new CheatingDetector();
+
 	onMount(() => {
+		cheatingDetector.registerHandlers();
 		document.documentElement.requestFullscreen();
+	});
+
+	onDestroy(() => {
+		cheatingDetector.unregisterHandlers();
 	});
 
 	function beforeUnload(eventargs: BeforeUnloadEvent) {

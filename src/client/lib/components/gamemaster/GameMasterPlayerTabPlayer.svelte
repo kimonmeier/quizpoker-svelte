@@ -43,6 +43,8 @@
 	></button>
 	<div class="flex-grow font-bold">{currentPlayer?.name ?? 'Spieler'}</div>
 	<div class="flex-grow font-bold">{schaetzung?.schaetzung?.toLocaleString() ?? 'Schätzung'}</div>
+	<button class="w-10 h-10 {currentPlayer?.isOnPage ? 'bg-green-500' : 'bg-red-500'} rounded-3xl"
+	></button>
 	<div>Chips</div>
 	<input
 		type="number"
