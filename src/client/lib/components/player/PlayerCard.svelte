@@ -5,6 +5,7 @@
 	import { playerWhichHasControl } from '@client/lib/stores/PlayerStore';
 	import { toastStore } from '@client/lib/stores/ToastStore';
 	import PlayerToast from './PlayerToast.svelte';
+	import PlayerName from './PlayerName.svelte';
 
 	let className = '';
 
@@ -18,8 +19,9 @@
 <div
 	class="{className} {hasControl
 		? 'pulseCam'
-		: ''} flex flex-col rounded-3xl rounded-b-2xl border-8 border-[#1e699c] m-24 my-auto shadow-lg shadow-black text-lg"
+		: ''} flex flex-col rounded-3xl rounded-b-2xl border-8 border-[#1e699c] m-24 my-auto shadow-lg shadow-black text-lg relative"
 >
+	<PlayerName name={player.name} />
 	<PlayerToast {toast} />
 	<VodNinjaWrapper url={player.link} />
 	<PlayerEntry class="thickBorder" {player} />
