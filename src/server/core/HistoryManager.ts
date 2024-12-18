@@ -27,7 +27,7 @@ export class HistoryManager implements BasicManager {
 			this.eventHistory.forEach((element) => {
 				socket.emit(element.event, ...element.args);
 			});
-		}, 500);
+		}, 100);
 	}
 
 	public SendAndSaveToHistory<Ev extends EventType>(ev: Ev, ...args: unknown[]) {

@@ -28,19 +28,23 @@
 		} else {
 			errors = undefined;
 			if ($page.url.searchParams.has('gamemaster')) {
-				App.getInstance().Socket.emit('GAME_MASTER_CONNECTING', link, (playerId) => {
-					currentPlayerId.set(playerId!);
-					isLoggedIn.set(true);
+				App.getInstance()
+					.Socket.timeout(1000)
+					.emit('GAME_MASTER_CONNECTING', link, (error, playerId) => {
+						currentPlayerId.set(playerId!);
+						isLoggedIn.set(true);
 
-					goto('gamemaster');
-				});
+						goto('gamemaster');
+					});
 			} else {
-				App.getInstance().Socket.emit('PLAYER_CONNECTING', username, link, (playerId) => {
-					currentPlayerId.set(playerId!);
-					isLoggedIn.set(true);
+				App.getInstance()
+					.Socket.timeout(1000)
+					.emit('PLAYER_CONNECTING', username, link, (error, playerId) => {
+						currentPlayerId.set(playerId!);
+						isLoggedIn.set(true);
 
-					goto('play');
-				});
+						goto('play');
+					});
 			}
 		}
 
