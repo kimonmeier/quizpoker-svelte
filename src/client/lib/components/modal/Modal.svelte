@@ -40,7 +40,7 @@
 		padding: 1em;
 	}
 	dialog[open] {
-		animation: zoom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		animation: zoom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 	@keyframes zoom {
 		from {
@@ -51,7 +51,7 @@
 		}
 	}
 	dialog[open]::backdrop {
-		animation: fade 0.2s ease-out;
+		animation: fade 0.5s ease-out;
 	}
 	@keyframes fade {
 		from {

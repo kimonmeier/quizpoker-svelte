@@ -13,7 +13,7 @@
 	let steuerungVisible = false;
 
 	onMount(() => {
-		document.body.requestFullscreen();
+		document.documentElement.requestFullscreen();
 	});
 
 	function beforeUnload(eventargs: BeforeUnloadEvent) {
