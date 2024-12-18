@@ -63,9 +63,24 @@ export class RoundManager implements BasicManager {
 	}
 
 	private changePhase(phase: FragenPhase): void {
+		let value: string | undefined = undefined;
+		switch (this.currentPhase) {
+			case FragenPhase.FRAGE:
+				value = this.frage!.hinweis1;
+				break;
+			case FragenPhase.RUNDE_1:
+				value = this.frage!.hinweis2;
+				break;
+			case FragenPhase.RUNDE_2:
+				value = this.frage!.antwort;
+				break;
+			default:
+				throw new Error('No Phase found');
+		}
+
 		this.currentPhase = phase;
 
-		this.historyManager.SendAndSaveToHistory('CHANGE_GAME_PHASE', phase);
+		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_PHASE', phase, value);
 
 		this.eventBus.dispatch({
 			event: {
