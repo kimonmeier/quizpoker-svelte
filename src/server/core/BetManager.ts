@@ -113,7 +113,11 @@ export default class BetManager implements BasicManager {
 
 		this.bets.push(bet);
 
-		this.historyManager.SendAndSaveToHistory('BET_CHANGED', bet.player_id, bet.bet);
+		this.historyManager.SendAndSaveToHistory(
+			'BET_CHANGED',
+			bet.player_id,
+			this.getBetValues(bet.player_id)
+		);
 		this.historyManager.SendAndSaveToHistory('CHANGE_POT', this.getPot());
 	}
 
