@@ -6,8 +6,14 @@
 	import { isLoggedIn } from '@client/lib/stores/CredentialStore';
 	import { playerStore } from '@client/lib/stores/PlayerStore';
 	import Icon from '@iconify/svelte';
+	import BackgroundVideo from '@client/lib/assets/background.mp4';
+	import { onMount } from 'svelte';
 
 	let steuerungVisible = false;
+
+	onMount(() => {
+		document.body.requestFullscreen();
+	});
 
 	function beforeUnload(eventargs: BeforeUnloadEvent) {
 		if ($isLoggedIn) {
@@ -44,6 +50,9 @@
 
 <svelte:window on:beforeunload={beforeUnload} />
 
+<video class="absolute top-0 left-0 w-full h-full -z-50 blur-md" autoplay muted loop preload="none">
+	<source src={BackgroundVideo} type="video/mp4" />
+</video>
 <button
 	class="absolute z-0 w-12 h-12 top-0 left-0 hover:text-white text-transparent"
 	on:click={() => (steuerungVisible = !steuerungVisible)}
@@ -51,7 +60,7 @@
 	<Icon icon="mdi:cog" height="100%"></Icon>
 </button>
 <PlayerControlsModal bind:showModal={steuerungVisible} />
-<div class="grid grid-cols-6 grid-rows-{getAnzCols(playerLength)} h-full w-full">
+<div class="grid grid-cols-6 grid-rows-{getAnzCols(playerLength)} h-full w-full bg-transparent">
 	<div
 		class="col-span-2 col-start-3 row-start-{getRowStart(playerLength)} row-span-{getRowSpan(
 			playerLength
