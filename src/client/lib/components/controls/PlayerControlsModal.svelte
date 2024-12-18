@@ -12,6 +12,7 @@
 		backgroundMusicIntenseVolume,
 		backgroundMusicVolume
 	} from '@client/lib/stores/SoundStore';
+	import { videoActivated } from '@client/lib/stores/SettingStore';
 
 	export let showModal: boolean;
 
@@ -114,6 +115,15 @@
 			class="bg-green-400 disabled:bg-gray-700 rounded-3xl"
 			on:click={submitSchaetzung}>Schätzung abgeben</button
 		>
+	</GroupBox>
+	<GroupBox title="Einstellungen">
+		<div class="flex flex-col w-full gap-5">
+			<div class="flex flex-row">
+				<div>Video-Hintergrund aktivieren:</div>
+
+				<input type="checkbox" bind:checked={$videoActivated} />
+			</div>
+		</div>
 	</GroupBox>
 	<GroupBox title="Chips">
 		<div class="flex flex-col">
