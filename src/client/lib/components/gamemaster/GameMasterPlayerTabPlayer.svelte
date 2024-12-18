@@ -15,7 +15,7 @@
 	}
 
 	function chipsChanged(): void {
-		App.getInstance().Socket.emit('UPDATE_PLAYER_CHIPS', playerId, currentBet);
+		App.getInstance().Socket.emit('UPDATE_PLAYER_CHIPS', playerId, currentChips);
 	}
 
 	function toggleControl(): void {
