@@ -64,14 +64,17 @@ export class RoundManager implements BasicManager {
 
 	private changePhase(phase: FragenPhase): void {
 		let value: string | undefined = undefined;
-		switch (this.currentPhase) {
+		switch (phase) {
 			case FragenPhase.FRAGE:
-				value = this.frage!.hinweis1;
+				value = this.frage!.frage;
 				break;
 			case FragenPhase.RUNDE_1:
-				value = this.frage!.hinweis2;
+				value = this.frage!.hinweis1;
 				break;
 			case FragenPhase.RUNDE_2:
+				value = this.frage!.hinweis2;
+				break;
+			case FragenPhase.ANTWORT:
 				value = this.frage!.antwort;
 				break;
 			default:
