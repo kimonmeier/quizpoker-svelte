@@ -89,6 +89,18 @@
 		$schaetzungAbgegeben = true;
 	}
 
+	function validateBet() {
+		if (raiseTo % 50 != 0) {
+			raiseTo = Math.floor(raiseTo / 50) * 50;
+		}
+
+		if (raiseTo < $minimumBet) {
+			raiseTo = $minimumBet;
+		} else if (raiseTo > currentChips!.chips) {
+			raiseTo = currentChips!.chips;
+		}
+	}
+
 	let raiseTo = $minimumBet;
 	let schaetzung = 0;
 	let minimumBetSubscriber: Unsubscriber | undefined = undefined;
@@ -170,7 +182,12 @@
 				max={currentChips?.chips ?? 0}
 				step="50"
 			/>
-			<input type="number" class="font-bold bg-neutral-700 rounded-xl" bind:value={raiseTo} />
+			<input
+				type="number"
+				class="font-bold bg-neutral-700 rounded-xl"
+				bind:value={raiseTo}
+				on:blur={validateBet}
+			/>
 		</div>
 	</GroupBox>
 	<GroupBox title="Game Einstellungen">
