@@ -97,6 +97,10 @@ export default class SchaetzungManager implements BasicManager {
 		let winnerNumber: number | null = null;
 
 		Array.from(this.schaetzungen.entries()).forEach((x) => {
+			if (this.playerManager.getPlayerByUuid(x[0]) == null) {
+				return;
+			}
+
 			if (this.playerManager.getPlayerByUuid(x[0]).status != MemberStatus.ON) {
 				return;
 			}
