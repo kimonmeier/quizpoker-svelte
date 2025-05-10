@@ -77,6 +77,10 @@ export class RoundManager implements BasicManager {
 			case FragenPhase.ANTWORT:
 				value = this.frage!.antwort;
 				break;
+			case FragenPhase.PAUSE:
+				console.log('Pause was selected');
+				value = '';
+				return;
 			default:
 				throw new Error('No Phase found');
 		}
