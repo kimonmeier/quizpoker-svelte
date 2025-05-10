@@ -42,7 +42,8 @@
 	{:else}
 		<div class="col-span-3 row-span-4 mx-5">
 			<iframe
-				src="https://twitch-chat-psi.vercel.app/?channels=soxeer"
+				id="twitch-chat"
+				src="https://chatis.is2511.com/v2/?channel=Soxeer&animate=true&size=3&font=5&shadow=3"
 				class="w-full h-full rounded-t-3xl"
 				title="Chat"
 			/>
