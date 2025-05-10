@@ -26,6 +26,13 @@
 		font-weight: bold;
 		font-style: normal;
 	}
+
+	@font-face {
+		font-family: 'Gameshow';
+		src: url('/fonts/NotoSans-Italic.ttf');
+		font-weight: bold;
+		font-style: italic;
+	}
 }
 
 @tailwind components;
