@@ -33,7 +33,7 @@
 			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.4);
 		}
 		50% {
-			box-shadow: 0px 0px 30px 10px rgba(255, 0, 0, 0.8);
+			box-shadow: 0px 0px 30px 20px rgba(255, 0, 0, 0.9);
 		}
 		100% {
 			box-shadow: 0px 0px 30px 1px rgba(255, 0, 0, 0.4);
