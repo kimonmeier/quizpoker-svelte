@@ -6,17 +6,23 @@
 		backgroundMusicIntenseVolume,
 		backgroundMusicStore,
 		backgroundMusicStoreIntense,
-		backgroundMusicVolume
+		backgroundMusicVolume,
+		soundEffectsStore,
+		soundEffectsVolume
 	} from '@client/lib/stores/SoundStore';
 	import { Sound } from '@client/lib/components/sounds/Sound';
 	import backgroundMusic from '$lib/assets/background_music.mp3';
 	import backgroundMusicIntense from '$lib/assets/background_music.mp3';
+	import soundEffectMusic from '$lib/assets/sound_effects.mp3';
 
 	$backgroundMusicStore = new Sound(backgroundMusic, backgroundMusicVolume, {
 		loop: true
 	});
 	$backgroundMusicStoreIntense = new Sound(backgroundMusicIntense, backgroundMusicIntenseVolume, {
 		loop: true
+	});
+	$soundEffectsStore = new Sound(soundEffectMusic, soundEffectsVolume, {
+		loop: false
 	});
 
 	function beforeUnload(eventargs: BeforeUnloadEvent) {

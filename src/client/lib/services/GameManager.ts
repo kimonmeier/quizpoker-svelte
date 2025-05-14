@@ -6,7 +6,11 @@ import { chipStore, gamePot, gameStateStore } from '../stores/GameStore';
 import { schaetzungStore } from '../stores/SchaetzungenStore';
 import { MemberStatus } from '@poker-lib/enums/MemberStatus';
 import { toastStore } from '../stores/ToastStore';
-import { backgroundMusicStore, backgroundMusicStoreIntense } from '../stores/SoundStore';
+import {
+	backgroundMusicStore,
+	backgroundMusicStoreIntense,
+	soundEffectsStore
+} from '../stores/SoundStore';
 import { io, type Socket } from 'socket.io-client';
 import type { ServerToClientEvents } from '@poker-lib/message/ServerToClientEvents';
 import type { ClientToServerEvents } from '@poker-lib/message/ClientToServerEvents';
@@ -190,6 +194,10 @@ export class App {
 
 			return gameState;
 		});
+
+		if (phase != FragenPhase.PAUSE) {
+			get(soundEffectsStore).play();
+		}
 
 		if (phase == FragenPhase.ANTWORT) {
 			get(backgroundMusicStore).stop();

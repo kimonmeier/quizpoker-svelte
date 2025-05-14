@@ -10,7 +10,8 @@
 	import type { Unsubscriber } from 'svelte/store';
 	import {
 		backgroundMusicIntenseVolume,
-		backgroundMusicVolume
+		backgroundMusicVolume,
+		soundEffectsVolume
 	} from '@client/lib/stores/SoundStore';
 	import { videoActivated } from '@client/lib/stores/SettingStore';
 
@@ -207,6 +208,11 @@
 					max={1}
 					step="0.005"
 				/>
+			</div>
+			<div class="flex flex-row">
+				<div>Lautstärke Soundeffekte:</div>
+
+				<input type="range" bind:value={$soundEffectsVolume} min={0} max={1} step="0.005" />
 			</div>
 		</div>
 	</GroupBox>
