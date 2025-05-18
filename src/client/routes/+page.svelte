@@ -110,18 +110,16 @@
 					type="text"
 				/>
 			</div>
-			{#if !$page.url.searchParams.has('gamemaster')}
-				<div class="flex flex-col px-2 py-1">
-					<label class="font-bold mb-2" for="roomCodeInput">Room Code:</label>
-					<input
-						class="rounded bg-gray-600"
-						id="roomCodeInput"
-						disabled={isLoading}
-						bind:value={roomCode}
-						type="text"
-					/>
-				</div>
-			{/if}
+			<div class="flex flex-col px-2 py-1">
+				<label class="font-bold mb-2" for="roomCodeInput">Room Code:</label>
+				<input
+					class="rounded bg-gray-600"
+					id="roomCodeInput"
+					disabled={isLoading}
+					bind:value={roomCode}
+					type="text"
+				/>
+			</div>
 			<div class="flex flex-col px-2 py-1">
 				<button
 					class="rounded p-2 font-bold bg-blue-600"
