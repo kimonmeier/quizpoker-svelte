@@ -180,7 +180,7 @@ export class App {
 
 			switch (phase) {
 				case FragenPhase.PAUSE:
-					gameState.currentFrage = undefined;
+					gameState.currentFrage = null;
 					break;
 				case FragenPhase.RUNDE_1:
 					gameState.currentFrage!.hinweis_1 = value!;

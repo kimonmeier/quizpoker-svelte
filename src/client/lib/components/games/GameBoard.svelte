@@ -15,7 +15,7 @@
 		Aktuell sind <span class="font-bold text-3xl mx-3">{$gamePot}</span> im Pot
 	</div>
 
-	{#if $gameStateStore.currentFrage}
+	{#if $gameStateStore.currentFrage != null}
 		<Frage title="Frage">
 			{$gameStateStore.currentFrage.frage}
 			{#if $gameStateStore.currentFrage.einheit}

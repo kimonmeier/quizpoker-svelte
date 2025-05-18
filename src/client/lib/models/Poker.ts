@@ -3,5 +3,5 @@ import type { Frage } from './Frage.ts';
 
 export interface GameState {
 	currentPhase: FragenPhase;
-	currentFrage?: Frage;
+	currentFrage: Frage | null;
 }

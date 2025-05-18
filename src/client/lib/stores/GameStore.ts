@@ -58,7 +58,8 @@ export const chipStore = createChipsStore();
 
 export const gameStarted = writable<boolean>(false);
 export const gameStateStore = writable<GameState>({
-	currentPhase: FragenPhase.PAUSE
+	currentPhase: FragenPhase.PAUSE,
+	currentFrage: null
 });
 export const gamePot = writable<number>(0);
 export const gameCode = writable<GameCode | null>(null);
