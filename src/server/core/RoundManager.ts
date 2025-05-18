@@ -63,7 +63,7 @@ export class RoundManager implements BasicManager {
 			throw new Error('No Frage found for this room');
 		}
 
-		let value: string | undefined = undefined;
+		let value: string | null = null;
 		switch (phase) {
 			case FragenPhase.FRAGE:
 				value = currentFrage.frage;
@@ -79,7 +79,7 @@ export class RoundManager implements BasicManager {
 				break;
 			case FragenPhase.PAUSE:
 				console.log('Pause was selected');
-				value = '';
+				value = null;
 				return;
 			default:
 				throw new Error('No Phase found');
