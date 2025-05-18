@@ -147,7 +147,7 @@ export default class PlayerManager implements BasicManager {
 
 	public getPlayersByRoom(roomCode: GameCode): Player[] {
 		const playerIds = this.rooms.get(roomCode) ?? [];
-		return playerIds.map((playerId) => this.players.get(playerId)!);
+		return playerIds.map((playerId) => this.players.get(playerId)!).filter((x) => x != null);
 	}
 
 	public getPlayingPlayers(roomCode: GameCode): Player[] {
