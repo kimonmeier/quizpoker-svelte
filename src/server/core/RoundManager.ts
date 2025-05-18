@@ -80,7 +80,7 @@ export class RoundManager implements BasicManager {
 			case FragenPhase.PAUSE:
 				console.log('Pause was selected');
 				value = null;
-				return;
+				break;
 			default:
 				throw new Error('No Phase found');
 		}
