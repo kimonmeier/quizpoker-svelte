@@ -3,7 +3,7 @@
 </script>
 
 <div class="content w-full">
-	<div class="text-white text-center text-4xl font-bold p-2 text-pretty">
+	<div class="text-white text-center text-4xl font-bold p-2 text-pretty shadow-sm shadow-black">
 		{name}
 	</div>
 </div>
@@ -14,6 +14,5 @@
 		left: 50%;
 		top: -1%;
 		transform: translate(-50%, -50%);
-		text-shadow: black 5px 5px;
 	}
 </style>
