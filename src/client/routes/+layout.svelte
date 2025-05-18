@@ -12,7 +12,7 @@
 	} from '@client/lib/stores/SoundStore';
 	import { Sound } from '@client/lib/components/sounds/Sound';
 	import backgroundMusic from '$lib/assets/background_music.mp3';
-	import backgroundMusicIntense from '$lib/assets/background_music.mp3';
+	import backgroundMusicIntense from '$lib/assets/answer_music.mp3';
 	import soundEffectMusic from '$lib/assets/sound_effect.mp3';
 
 	$backgroundMusicStore = new Sound(backgroundMusic, backgroundMusicVolume, {
