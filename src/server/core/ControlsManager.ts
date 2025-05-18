@@ -5,7 +5,7 @@ import type { BlindManager } from './BlindManager.ts';
 import type { HistoryManager } from './HistoryManager.ts';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { BasicManager } from './BasicManager.ts';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppServer, AppSocket } from './App.ts';
 
 export class ControlsManager implements BasicManager {
@@ -16,10 +16,9 @@ export class ControlsManager implements BasicManager {
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly blindManager: BlindManager;
 
-	private currentPlayerInControl: PlayerId | null = null;
-	private players: Map<string, number> = new Map();
-	private lastPlayerToBet: PlayerId | null = null;
-	private bigBlindId: PlayerId | null = null;
+	private currentPlayerInControl: Map<GameCode, PlayerId | null> = new Map();
+	private lastPlayerToBet: Map<GameCode, PlayerId | null> = new Map();
+	private bigBlindId: Map<GameCode, PlayerId | null> = new Map();
 
 	public constructor(
 		historyManager: HistoryManager,
@@ -39,18 +38,21 @@ export class ControlsManager implements BasicManager {
 		this.eventBus.registerToEvent({
 			event: 'BIG-BLIND-SET',
 			listener: (event) => {
-				this.bigBlindId = event.payload;
+				this.bigBlindId.set(event.payload.Room, event.payload.BigBlind);
 
-				this.takePlayerControls();
+				this.takePlayerControls(event.payload.Room);
 
-				this.lastPlayerToBet = this.findNextPlayerId(this.bigBlindId!)!;
+				this.lastPlayerToBet.set(
+					event.payload.Room,
+					this.findNextPlayerId(event.payload.Room, this.bigBlindId.get(event.payload.Room)!)!
+				);
 			}
 		});
 
 		this.eventBus.registerToEvent({
 			event: 'PHASE-TRIGGERED',
 			listener: (event) => {
-				if (event.payload == FragenPhase.FRAGE || event.payload == FragenPhase.PAUSE) {
+				if (event.payload.Phase == FragenPhase.FRAGE || event.payload.Phase == FragenPhase.PAUSE) {
 					return;
 				}
 
@@ -58,127 +60,147 @@ export class ControlsManager implements BasicManager {
 					return;
 				}
 
-				this.givePlayerControls(this.lastPlayerToBet, this.lastPlayerToBet);
-				this.lastPlayerToBet = this.currentPlayerInControl!;
+				this.givePlayerControls(
+					event.payload.Room,
+					this.lastPlayerToBet.get(event.payload.Room)!,
+					this.lastPlayerToBet.get(event.payload.Room)!
+				);
+				this.lastPlayerToBet.set(
+					event.payload.Room,
+					this.currentPlayerInControl.get(event.payload.Room)!
+				);
 			}
 		});
 	}
 
 	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
 		socket
-			.on('disconnect', () => this.players.delete(uuid))
-			.on('PLAYER_CONNECTING', () => this.players.set(uuid, 0))
-			.on('GIVE_PLAYER_CONTROLS', (playerId) => this.givePlayerControlsByGameMaster(playerId))
-			.on('CHANGE_PHASE', (phase) => this.changePhase(phase))
-			.on('RAISE', () => this.raise(uuid))
-			.on('FOLD', () => this.fold())
-			.on('CHECK', () => this.moveControlsForward())
-			.on('CALL', () => this.moveControlsForward())
-			.on('REPORT_VISIBILITY_CHANGED', (visible) =>
-				this.server.to('game-master').emit('REPORT_VISIBILITY_CHANGED', uuid, visible)
-			);
+			.on('GIVE_PLAYER_CONTROLS', (roomCode, playerId) =>
+				this.givePlayerControlsByGameMaster(roomCode, playerId)
+			)
+			.on('CHANGE_PHASE', (roomCode, phase) => this.changePhase(roomCode, phase))
+			.on('RAISE', () => this.raise(this.playerManager.getRoomCodeByPlayerId(uuid), uuid))
+			.on('FOLD', () => this.fold(this.playerManager.getRoomCodeByPlayerId(uuid)))
+			.on('CHECK', () => this.moveControlsForward(this.playerManager.getRoomCodeByPlayerId(uuid)))
+			.on('CALL', () => this.moveControlsForward(this.playerManager.getRoomCodeByPlayerId(uuid)))
+			.on('REPORT_VISIBILITY_CHANGED', (visible) => {
+				this.server
+					.to('game-master-' + this.playerManager.getRoomCodeByPlayerId(uuid))
+					.emit('REPORT_VISIBILITY_CHANGED', uuid, visible);
+			});
 	}
 
-	private givePlayerControlsByGameMaster(playerId: PlayerId): void {
+	private givePlayerControlsByGameMaster(roomCode: GameCode, playerId: PlayerId): void {
 		console.log('Controls SELECTED');
-		const lastPlayerId = this.currentPlayerInControl;
-		this.takePlayerControls();
+		const lastPlayerId = this.currentPlayerInControl.get(roomCode);
+		this.takePlayerControls(roomCode);
 
 		if (lastPlayerId == null) {
-			this.givePlayerControls(playerId, this.bigBlindId);
+			this.givePlayerControls(roomCode, playerId, this.bigBlindId.get(roomCode) ?? null);
 		} else if (lastPlayerId != playerId) {
-			this.givePlayerControls(playerId, lastPlayerId);
+			this.givePlayerControls(roomCode, playerId, lastPlayerId);
 		}
 	}
 
-	private changePhase(phase: FragenPhase): void {
-		this.takePlayerControls();
+	private changePhase(roomCode: GameCode, phase: FragenPhase): void {
+		this.takePlayerControls(roomCode);
 
 		if (phase == FragenPhase.PAUSE) {
 			return;
 		}
 
-		if (this.playerManager.getPlayingPlayers().length == 1) {
+		if (this.playerManager.getPlayingPlayers(roomCode).length == 1) {
 			return;
 		}
 
-		this.givePlayerControls(this.lastPlayerToBet!, this.lastPlayerToBet!);
-		this.lastPlayerToBet = this.currentPlayerInControl!;
+		this.givePlayerControls(
+			roomCode,
+			this.lastPlayerToBet.get(roomCode)!,
+			this.lastPlayerToBet.get(roomCode)!
+		);
+		this.lastPlayerToBet.set(roomCode, this.currentPlayerInControl.get(roomCode)!);
 	}
 
-	private raise(playerId: PlayerId): void {
-		this.lastPlayerToBet = playerId;
-		this.moveControlsForward();
+	private raise(roomCode: GameCode, playerId: PlayerId): void {
+		this.lastPlayerToBet.set(roomCode, playerId);
+		this.moveControlsForward(roomCode);
 	}
 
-	private fold(): void {
+	private fold(roomCode: GameCode): void {
 		setTimeout(() => {
-			if (this.playerManager.getPlayingPlayers().length == 1) {
-				this.takePlayerControls();
+			if (this.playerManager.getPlayingPlayers(roomCode).length == 1) {
+				this.takePlayerControls(roomCode);
 			} else {
-				this.moveControlsForward();
+				this.moveControlsForward(roomCode);
 			}
 		}, 500);
 	}
 
-	private givePlayerControls(playerId: PlayerId, lastPlayerId: PlayerId | null): void {
-		this.currentPlayerInControl = playerId;
-		this.players.set(playerId, Date.now());
+	private givePlayerControls(
+		room: GameCode,
+		playerId: PlayerId,
+		lastPlayerId: PlayerId | null
+	): void {
+		this.currentPlayerInControl.set(room, playerId);
 
 		this.historyManager.SendAndSaveToHistory(
+			room,
 			'GIVE_PLAYER_CONTROLS',
 			playerId,
-			this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getBigBlind()) + 50
+			this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getBigBlind(room)) + 50
 		);
 	}
 
-	private takePlayerControls(): void {
+	private takePlayerControls(room: GameCode): void {
 		if (this.currentPlayerInControl == null) {
 			return;
 		}
 
-		this.historyManager.SendAndSaveToHistory('TAKE_PLAYER_CONTROLS', this.currentPlayerInControl);
+		this.historyManager.SendAndSaveToHistory(
+			room,
+			'TAKE_PLAYER_CONTROLS',
+			this.currentPlayerInControl
+		);
 
-		this.currentPlayerInControl = null;
+		this.currentPlayerInControl.set(room, null);
 	}
 
-	private moveControlsForward(): void {
+	private moveControlsForward(room: GameCode): void {
 		let moveControlsForward = true;
-		if (
-			this.lastPlayerToBet &&
-			this.lastPlayerToBet == this.findNextPlayerId(this.currentPlayerInControl!)
-		) {
+		const lastPlayerBetId = this.lastPlayerToBet.get(room);
+		const currentPlayerId = this.currentPlayerInControl.get(room);
+		if (lastPlayerBetId && lastPlayerBetId == this.findNextPlayerId(room, currentPlayerId!)) {
 			moveControlsForward = false;
 		}
 
-		const lastPlayerId = this.currentPlayerInControl;
-		this.takePlayerControls();
+		const lastPlayerId = this.currentPlayerInControl.get(room);
+		this.takePlayerControls(room);
 
 		if (!moveControlsForward) {
 			this.eventBus.dispatch({
 				event: {
 					type: 'TRIGGER-NEXT-PHASE',
-					payload: undefined
+					payload: room
 				}
 			});
 			return;
 		}
 
-		if (this.playerManager.getPlayingPlayers().length == 1) {
+		if (this.playerManager.getPlayingPlayers(room).length == 1) {
 			return;
 		}
 
-		const nextPlayerId = this.findNextPlayerId(lastPlayerId ?? this.bigBlindId!);
+		const nextPlayerId = this.findNextPlayerId(room, lastPlayerId ?? this.bigBlindId.get(room)!);
 
 		if (!nextPlayerId) {
 			return;
 		}
 
-		this.givePlayerControls(nextPlayerId, this.lastPlayerToBet);
+		this.givePlayerControls(room, nextPlayerId, this.lastPlayerToBet.get(room)!);
 	}
 
-	private findNextPlayerId(startId: PlayerId): PlayerId | undefined {
-		const playingPlayers = this.playerManager.getPlayingPlayers();
+	private findNextPlayerId(room: GameCode, startId: PlayerId): PlayerId | undefined {
+		const playingPlayers = this.playerManager.getPlayingPlayers(room);
 
 		let count = 0;
 		let playerId: PlayerId | undefined | null = startId;

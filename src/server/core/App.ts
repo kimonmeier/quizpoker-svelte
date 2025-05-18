@@ -55,7 +55,7 @@ export class App {
 			this.playerManager,
 			this.webSocket
 		);
-		this.roundManager = new RoundManager(this.historyManager, this.eventBus, this.playerManager);
+		this.roundManager = new RoundManager(this.historyManager, this.eventBus);
 	}
 
 	public startApp(): void {

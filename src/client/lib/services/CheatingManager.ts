@@ -1,3 +1,5 @@
+import { get } from 'svelte/store';
+import { gameCode } from '../stores/GameStore';
 import { App } from './GameManager';
 
 export class CheatingDetector {

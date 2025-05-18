@@ -61,7 +61,7 @@ export class App {
 
 		invalidateAll().then(() => {
 			console.log('Successfully invalidated all');
-			goto('login').then(() => {
+			goto('').then(() => {
 				console.log('Rerouted to login!');
 			});
 		});

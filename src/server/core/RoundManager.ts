@@ -4,47 +4,41 @@ import type { Frage } from '@server/entities/Frage.ts';
 import type { HistoryManager } from './HistoryManager.ts';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { BasicManager } from './BasicManager.ts';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppSocket } from './App.ts';
 
 export class RoundManager implements BasicManager {
-	private readonly playerManager: PlayerManager;
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly historyManager: HistoryManager;
 
-	private frage: Frage | null = null;
-	private currentPhase: FragenPhase | null = null;
-	private changeAutomaticPhase: boolean = true;
+	private frage: Map<GameCode, Frage | null> = new Map();
+	private currentPhase: Map<GameCode, FragenPhase | null> = new Map();
+	private changeAutomaticPhase: Map<GameCode, boolean> = new Map();
 
-	public constructor(
-		historyManager: HistoryManager,
-		eventBus: QuizPokerEventBus,
-		playerManger: PlayerManager
-	) {
+	public constructor(historyManager: HistoryManager, eventBus: QuizPokerEventBus) {
 		this.historyManager = historyManager;
 		this.eventBus = eventBus;
-		this.playerManager = playerManger;
 
 		this.eventBus.registerToEvent({
 			event: 'TRIGGER-NEXT-PHASE',
-			listener: () => this.triggerNextPhase()
+			listener: (data) => this.triggerNextPhase(data.payload)
 		});
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
 		socket
-			.on('PLAY_QUESTION', (question, hinweis_1, hinweis_2, answer, einheit) =>
-				this.constructNewQuestion(question, hinweis_1, hinweis_2, answer, einheit)
+			.on('PLAY_QUESTION', (roomCode, question, hinweis_1, hinweis_2, answer, einheit) =>
+				this.constructNewQuestion(roomCode, question, hinweis_1, hinweis_2, answer, einheit)
 			)
-			.on('CHANGE_PHASE', (phase) => this.changePhase(phase))
-			.on(
-				'CHANGE_AUTOMATIC_PHASE_CHANGING',
-				(activated) => (this.changeAutomaticPhase = activated)
+			.on('CHANGE_PHASE', (roomCode, phase) => this.changePhase(roomCode, phase))
+			.on('CHANGE_AUTOMATIC_PHASE_CHANGING', (roomCode, activated) =>
+				this.changeAutomaticPhase.set(roomCode, activated)
 			);
 	}
 
 	private constructNewQuestion(
+		roomCode: GameCode,
 		question: string,
 		hinweis_1: string,
 		hinweis_2: string,
@@ -59,23 +53,29 @@ export class RoundManager implements BasicManager {
 			antwort: answer
 		};
 
-		this.playNewQuestion(frage);
+		this.playNewQuestion(roomCode, frage);
 	}
 
-	private changePhase(phase: FragenPhase): void {
+	private changePhase(roomCode: GameCode, phase: FragenPhase): void {
+		var currentFrage = this.frage.get(roomCode);
+
+		if (currentFrage == null) {
+			throw new Error('No Frage found for this room');
+		}
+
 		let value: string | undefined = undefined;
 		switch (phase) {
 			case FragenPhase.FRAGE:
-				value = this.frage!.frage;
+				value = currentFrage.frage;
 				break;
 			case FragenPhase.RUNDE_1:
-				value = this.frage!.hinweis1;
+				value = currentFrage.hinweis1;
 				break;
 			case FragenPhase.RUNDE_2:
-				value = this.frage!.hinweis2;
+				value = currentFrage.hinweis2;
 				break;
 			case FragenPhase.ANTWORT:
-				value = this.frage!.antwort;
+				value = currentFrage.antwort;
 				break;
 			case FragenPhase.PAUSE:
 				console.log('Pause was selected');
@@ -85,78 +85,98 @@ export class RoundManager implements BasicManager {
 				throw new Error('No Phase found');
 		}
 
-		this.currentPhase = phase;
+		this.currentPhase.set(roomCode, phase);
 
-		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_PHASE', phase, value);
+		this.historyManager.SendAndSaveToHistory(roomCode, 'DISPLAY_NEXT_PHASE', phase, value);
 
 		this.eventBus.dispatch({
 			event: {
 				type: 'PHASE-TRIGGERED',
-				payload: phase
+				payload: {
+					Phase: phase,
+					Room: roomCode
+				}
 			}
 		});
 	}
 
-	private playNewQuestion(frage: Frage): void {
-		this.frage = frage;
-		this.currentPhase = FragenPhase.FRAGE;
+	private playNewQuestion(roomCode: GameCode, frage: Frage): void {
+		this.frage.set(roomCode, frage);
+		this.currentPhase.set(roomCode, FragenPhase.FRAGE);
 
-		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_QUESTION', frage.frage, frage.einheit);
+		this.historyManager.SendAndSaveToHistory(
+			roomCode,
+			'DISPLAY_NEXT_QUESTION',
+			frage.frage,
+			frage.einheit
+		);
 
 		this.eventBus.dispatch({
 			event: {
 				type: 'PHASE-TRIGGERED',
-				payload: FragenPhase.FRAGE
+				payload: {
+					Phase: FragenPhase.FRAGE,
+					Room: roomCode
+				}
 			}
 		});
 
 		this.eventBus.dispatch({
 			event: {
 				type: 'NEXT-QUESTION',
-				payload: frage.frage
+				payload: {
+					Question: frage.frage,
+					Room: roomCode
+				}
 			}
 		});
 	}
 
-	private triggerNextPhase(): void {
-		if (!this.changeAutomaticPhase) {
+	private triggerNextPhase(roomCode: GameCode): void {
+		if (!(this.changeAutomaticPhase.get(roomCode) ?? false)) {
 			console.log('Automatisches verändern wurde deaktiviert!');
 			return;
 		}
 
+		let currentFrage = this.frage.get(roomCode);
+		let currentPhase = this.currentPhase.get(roomCode);
+
 		let nextPhase: FragenPhase;
 		let value: string | undefined = undefined;
 
-		if (!this.currentPhase || !this.frage) {
+		if (!currentPhase || !currentFrage) {
 			console.log('Nächste Phase wurde requested ohne aktuelle Frage');
 			return;
 		}
 
-		switch (this.currentPhase) {
+		switch (currentPhase) {
 			case FragenPhase.FRAGE:
 				nextPhase = FragenPhase.RUNDE_1;
-				value = this.frage.hinweis1;
+				value = currentFrage.hinweis1;
 				break;
 			case FragenPhase.RUNDE_1:
 				nextPhase = FragenPhase.RUNDE_2;
-				value = this.frage.hinweis2;
+				value = currentFrage.hinweis2;
 				break;
 			case FragenPhase.RUNDE_2:
 				nextPhase = FragenPhase.ANTWORT;
-				value = this.frage.antwort;
+				value = currentFrage.antwort;
 				break;
 			default:
 				throw new Error('No Phase found');
 		}
 
-		this.currentPhase = nextPhase;
+		this.currentPhase.set(roomCode, nextPhase);
 
-		this.historyManager.SendAndSaveToHistory('DISPLAY_NEXT_PHASE', nextPhase, value);
+		this.historyManager.SendAndSaveToHistory(roomCode, 'DISPLAY_NEXT_PHASE', nextPhase, value);
 
 		this.eventBus.dispatch({
 			event: {
 				type: 'PHASE-TRIGGERED',
-				payload: nextPhase
+				payload: {
+					Phase: nextPhase,
+					Room: roomCode
+				}
 			}
 		});
 	}

@@ -1,7 +1,7 @@
 import { writable, type Readable } from 'svelte/store';
 import type { ChipsModel } from '../models/Chips';
 import type { GameState } from '../models/Poker';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase';
 
 interface ChipsStore extends Readable<ChipsModel[]> {
@@ -61,3 +61,4 @@ export const gameStateStore = writable<GameState>({
 	currentPhase: FragenPhase.PAUSE
 });
 export const gamePot = writable<number>(0);
+export const gameCode = writable<GameCode | null>(null);

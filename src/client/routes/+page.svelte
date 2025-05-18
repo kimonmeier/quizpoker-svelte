@@ -5,10 +5,13 @@
 	import { App } from '$lib/services/GameManager';
 	import { currentPlayerId, isGamemaster, isLoggedIn } from '$lib/stores/CredentialStore';
 	import ErrorMessage from '$lib/components/alerts/ErrorMessage.svelte';
+	import type { GameCode } from '@poker-lib/message/OpaqueTypes';
+	import { gameCode } from '@client/lib/stores/GameStore';
 
 	let errors: string | undefined;
 	let link: string;
 	let username: string;
+	let roomCode: GameCode;
 	let isLoading: boolean;
 
 	async function login() {
@@ -30,16 +33,17 @@
 			if ($page.url.searchParams.has('gamemaster')) {
 				App.getInstance()
 					.Socket.timeout(1000)
-					.emit('GAME_MASTER_CONNECTING', link, (error, playerId) => {
+					.emit('GAME_MASTER_CONNECTING', link, (error, playerId, roomCode) => {
 						currentPlayerId.set(playerId!);
 						isLoggedIn.set(true);
+						gameCode.set(roomCode);
 
 						goto('gamemaster');
 					});
 			} else {
 				App.getInstance()
 					.Socket.timeout(1000)
-					.emit('PLAYER_CONNECTING', username, link, (error, playerId) => {
+					.emit('PLAYER_CONNECTING', username, link, roomCode, (error, playerId) => {
 						currentPlayerId.set(playerId!);
 						isLoggedIn.set(true);
 
@@ -106,6 +110,18 @@
 					type="text"
 				/>
 			</div>
+			{#if !$page.url.searchParams.has('gamemaster')}
+				<div class="flex flex-col px-2 py-1">
+					<label class="font-bold mb-2" for="roomCodeInput">Room Code:</label>
+					<input
+						class="rounded bg-gray-600"
+						id="roomCodeInput"
+						disabled={isLoading}
+						bind:value={roomCode}
+						type="text"
+					/>
+				</div>
+			{/if}
 			<div class="flex flex-col px-2 py-1">
 				<button
 					class="rounded p-2 font-bold bg-blue-600"

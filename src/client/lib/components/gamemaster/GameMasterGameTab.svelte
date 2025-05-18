@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { chipStore, gamePot, gameStateStore } from '@client/lib/stores/GameStore';
+	import { chipStore, gameCode, gamePot, gameStateStore } from '@client/lib/stores/GameStore';
 	import GroupBox from '../groupBox/GroupBox.svelte';
 	import { ArrayUtils } from '@poker-lib/utils/ArrayUtils';
 	import Select from '../select/Select.svelte';
@@ -8,7 +8,7 @@
 	import { FragenPhase } from '@poker-lib/enums/FragenPhase';
 
 	function updatePhase() {
-		App.getInstance().Socket.emit('CHANGE_PHASE', $gameStateStore.currentPhase);
+		App.getInstance().Socket.emit('CHANGE_PHASE', $gameCode!, $gameStateStore.currentPhase);
 	}
 
 	function announeWinner() {
@@ -16,11 +16,15 @@
 			throw new Error('Nur während der Antwort kann ein Gewinner verkündet werden!');
 		}
 
-		App.getInstance().Socket.emit('DRAW_WINNER');
+		App.getInstance().Socket.emit('DRAW_WINNER', $gameCode!);
 	}
 
 	function toggelAutomaticPhaseChanging() {
-		App.getInstance().Socket.emit('CHANGE_AUTOMATIC_PHASE_CHANGING', $gameMasterAutoChangePhase);
+		App.getInstance().Socket.emit(
+			'CHANGE_AUTOMATIC_PHASE_CHANGING',
+			$gameCode!,
+			$gameMasterAutoChangePhase
+		);
 	}
 </script>
 

@@ -1,7 +1,7 @@
 import type { ServerToClientEvents } from '@poker-lib/message/ServerToClientEvents.ts';
 import type { BasicManager } from './BasicManager.ts';
 import type { AppServer, AppSocket } from './App.ts';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 
 type EventType = keyof ServerToClientEvents;
 // Define a type for the history entries
@@ -13,30 +13,39 @@ type EventHistoryEntry<Ev extends EventType> = {
 export class HistoryManager implements BasicManager {
 	private readonly connection: AppServer;
 	// Define the history array to store events and arguments
-	private eventHistory: EventHistoryEntry<any>[] = [];
+	private eventHistory: Map<GameCode, EventHistoryEntry<any>[]> = new Map();
 
 	public constructor(connection: AppServer) {
 		this.connection = connection;
 	}
 
-	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
-		console.log('Register Socket to HistoryManager');
-		console.log('History contains, ', this.eventHistory.length, 'entries');
-		setTimeout(() => {
-			console.log('Send history to new socket');
-			this.eventHistory.forEach((element) => {
-				socket.emit(element.event, ...element.args);
-			});
-		}, 100);
+	public registerSocket(socket: AppSocket, uuid: PlayerId) {}
+
+	public PublishHistory(socket: AppSocket, gameCode: GameCode): void {
+		if (!this.eventHistory.has(gameCode)) {
+			this.eventHistory.set(gameCode, []);
+		}
+
+		this.eventHistory.get(gameCode)!.forEach((element) => {
+			socket.emit(element.event, ...element.args);
+		});
 	}
 
-	public SendAndSaveToHistory<Ev extends EventType>(ev: Ev, ...args: unknown[]) {
-		this.SaveToHistory(ev, ...args);
+	public SendAndSaveToHistory<Ev extends EventType>(
+		gameCode: GameCode,
+		ev: Ev,
+		...args: unknown[]
+	) {
+		this.SaveToHistory(gameCode, ev, ...args);
 		this.connection.emit(ev, ...(args as any));
 	}
 
-	public SaveToHistory<Ev extends EventType>(ev: Ev, ...args: unknown[]) {
-		this.eventHistory.push({
+	public SaveToHistory<Ev extends EventType>(gameCode: GameCode, ev: Ev, ...args: unknown[]) {
+		if (!this.eventHistory.has(gameCode)) {
+			this.eventHistory.set(gameCode, []);
+		}
+
+		this.eventHistory.get(gameCode)!.push({
 			event: ev,
 			args: args
 		});

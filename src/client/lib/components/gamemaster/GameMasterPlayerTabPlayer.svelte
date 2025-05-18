@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { App } from '@client/lib/services/GameManager';
-	import { chipStore } from '@client/lib/stores/GameStore';
+	import { chipStore, gameCode } from '@client/lib/stores/GameStore';
 	import { playerStore, playerWhichHasControl } from '@client/lib/stores/PlayerStore';
 	import { schaetzungStore } from '@client/lib/stores/SchaetzungenStore';
 	import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
@@ -11,15 +11,15 @@
 	let currentBet = 0;
 
 	function betChanged(): void {
-		App.getInstance().Socket.emit('UPDATE_PLAYER_EINSATZ', playerId, currentBet);
+		App.getInstance().Socket.emit('UPDATE_PLAYER_EINSATZ', $gameCode!, playerId, currentBet);
 	}
 
 	function chipsChanged(): void {
-		App.getInstance().Socket.emit('UPDATE_PLAYER_CHIPS', playerId, currentChips);
+		App.getInstance().Socket.emit('UPDATE_PLAYER_CHIPS', $gameCode!, playerId, currentChips);
 	}
 
 	function toggleControl(): void {
-		App.getInstance().Socket.emit('GIVE_PLAYER_CONTROLS', playerId);
+		App.getInstance().Socket.emit('GIVE_PLAYER_CONTROLS', $gameCode!, playerId);
 	}
 
 	$: currentPlayer = $playerStore.find((x) => x.id == playerId);

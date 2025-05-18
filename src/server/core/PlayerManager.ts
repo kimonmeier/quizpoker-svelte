@@ -3,7 +3,7 @@ import StringHelper from '@poker-lib/utils/StringUtils.ts';
 import type { Player } from '@server/entities/Player.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import type { HistoryManager } from './HistoryManager.ts';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { BasicManager } from './BasicManager.ts';
 import type { AppSocket } from './App.ts';
 
@@ -12,6 +12,7 @@ export default class PlayerManager implements BasicManager {
 	private readonly eventBus: QuizPokerEventBus;
 
 	private players: Map<PlayerId, Player> = new Map();
+	private rooms: Map<GameCode, PlayerId[]> = new Map();
 	private chips: Map<string, number> = new Map();
 
 	public constructor(historyManager: HistoryManager, eventBus: QuizPokerEventBus) {
@@ -20,8 +21,9 @@ export default class PlayerManager implements BasicManager {
 
 		this.eventBus.registerToEvent({
 			event: 'NEXT-QUESTION',
-			listener: () => {
-				const foldedPlayers = this.getPlayers();
+			listener: (data) => {
+				const roomCode = data.payload.Room;
+				const foldedPlayers = this.getPlayersByRoom(roomCode);
 
 				foldedPlayers.forEach((player) => {
 					if (player.status == MemberStatus.PLEITE) {
@@ -38,6 +40,7 @@ export default class PlayerManager implements BasicManager {
 					this.players.set(player.playerId, player);
 
 					this.historyManager.SendAndSaveToHistory(
+						roomCode,
 						'STATUS_CHANGED',
 						player.playerId,
 						player.status
@@ -50,37 +53,70 @@ export default class PlayerManager implements BasicManager {
 	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
 		socket
 			.on('disconnect', () => this.disconnectPlayer(uuid))
-			.on('PLAYER_CONNECTING', (name, link, callback) =>
-				callback(this.connectPlayer(uuid, name, link))
+			.on('PLAYER_CONNECTING', (name, link, room, callback) =>
+				callback(this.connectPlayer(socket, uuid, room, name, link))
 			)
 			.on('FOLD', () => this.fold(uuid))
-			.on('UPDATE_PLAYER_CHIPS', (playerId, chips) => this.adjustChips(playerId, chips))
+			.on('UPDATE_PLAYER_CHIPS', (roomCode, playerId, chips) =>
+				this.adjustChips(roomCode, playerId, chips)
+			)
 			.on('GAME_MASTER_CONNECTING', (link, callback) => {
-				this.historyManager.SendAndSaveToHistory('GAMEMASTER_LOGIN', link);
-				callback(uuid);
+				const roomCode = StringHelper.generateRandomString(12) as GameCode;
+
+				this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), uuid]);
+				this.historyManager.SendAndSaveToHistory(roomCode, 'GAMEMASTER_LOGIN', link);
+				
+				socket.join(roomCode);
+				socket.join('game-master-' + roomCode);
+
+				callback(uuid, roomCode);
 			});
 	}
 
-	private connectPlayer(playerId: PlayerId, name: string, link: string): PlayerId {
+	private connectPlayer(
+		socket: AppSocket,
+		playerId: PlayerId,
+		roomCode: GameCode,
+		name: string,
+		link: string
+	): PlayerId {
 		this.players.set(playerId, {
 			playerId: playerId,
 			name: name,
 			link: link,
+			roomCode: roomCode,
 			status: MemberStatus.ON
 		});
 
+		this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), playerId]);
+
+		this.historyManager.PublishHistory(socket, roomCode);
+
 		this.chips.set(playerId, 10_000);
-		this.historyManager.SendAndSaveToHistory('PLAYER_JOINED', playerId, name, link);
+		this.historyManager.SendAndSaveToHistory(roomCode, 'PLAYER_JOINED', playerId, name, link);
+
+		socket.join(roomCode);
 
 		return playerId;
 	}
 
 	private disconnectPlayer(playerId: PlayerId): void {
+		var gameRoomCode: GameCode;
+		this.rooms.forEach((playerIds, roomCode) => {
+			if (playerIds.includes(playerId)) {
+				this.rooms.set(
+					roomCode,
+					playerIds.filter((id) => id !== playerId)
+				);
+				gameRoomCode = roomCode;
+			}
+		});
+
 		this.chips.delete(playerId);
 
 		this.players.delete(playerId);
 
-		this.historyManager.SendAndSaveToHistory('PLAYER_LEFT', playerId);
+		this.historyManager.SendAndSaveToHistory(gameRoomCode!, 'PLAYER_LEFT', playerId);
 	}
 
 	private fold(playerId: PlayerId): void {
@@ -88,7 +124,12 @@ export default class PlayerManager implements BasicManager {
 		player.status = MemberStatus.FOLDED;
 		this.players.set(playerId, player);
 
-		this.historyManager.SendAndSaveToHistory('STATUS_CHANGED', playerId, MemberStatus.FOLDED);
+		this.historyManager.SendAndSaveToHistory(
+			player.roomCode,
+			'STATUS_CHANGED',
+			playerId,
+			MemberStatus.FOLDED
+		);
 	}
 
 	public getPlayerByUuid(uuid: PlayerId): Player {
@@ -99,10 +140,24 @@ export default class PlayerManager implements BasicManager {
 		return Array.from(this.players.values());
 	}
 
-	public getPlayingPlayers(): Player[] {
-		return Array.from(this.players.values())
+	public getPlayersByRoom(roomCode: GameCode): Player[] {
+		const playerIds = this.rooms.get(roomCode) ?? [];
+		return playerIds.map((playerId) => this.players.get(playerId)!);
+	}
+
+	public getPlayingPlayers(roomCode: GameCode): Player[] {
+		return Array.from(this.getPlayersByRoom(roomCode))
 			.filter((x) => x.status == MemberStatus.ON)
 			.sort(this.comparePlayerFn);
+	}
+
+	public getRoomCodeByPlayerId(playerId: PlayerId): GameCode {
+		for (const [roomCode, playerIds] of this.rooms.entries()) {
+			if (playerIds.includes(playerId)) {
+				return roomCode;
+			}
+		}
+		throw new Error('Player not found in any room');
 	}
 
 	public resetFoldedPlayer(): void {}
@@ -115,9 +170,9 @@ export default class PlayerManager implements BasicManager {
 		return this.chips.get(playerId) ?? 0;
 	}
 
-	public adjustChips(playerId: PlayerId, chipsAmount: number): void {
+	public adjustChips(roomCode: GameCode, playerId: PlayerId, chipsAmount: number): void {
 		this.chips.set(playerId, chipsAmount);
 
-		this.historyManager.SendAndSaveToHistory('CHIPS_CHANGED', playerId, chipsAmount);
+		this.historyManager.SendAndSaveToHistory(roomCode, 'CHIPS_CHANGED', playerId, chipsAmount);
 	}
 }

@@ -4,7 +4,7 @@ import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import type { HistoryManager } from './HistoryManager.ts';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { BasicManager } from './BasicManager.ts';
-import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppServer, AppSocket } from './App.ts';
 
 export default class SchaetzungManager implements BasicManager {
@@ -13,9 +13,8 @@ export default class SchaetzungManager implements BasicManager {
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly playerManager: PlayerManager;
 
-	private schaetzungen: Map<PlayerId, number> = new Map();
-	private gameMasterId: string | null = null;
-	private correctAnswer: number | null = null;
+	private schaetzungen: Map<GameCode, Map<PlayerId, number>> = new Map();
+	private correctAnswer: Map<GameCode, number | null> = new Map();
 
 	public constructor(
 		historyManager: HistoryManager,
@@ -30,10 +29,10 @@ export default class SchaetzungManager implements BasicManager {
 
 		this.eventBus.registerToEvent({
 			event: 'PHASE-TRIGGERED',
-			listener: (phase) => {
-				if (phase.payload == FragenPhase.RUNDE_1) {
-					this.revealSchaetzungen();
-				} else if (phase.payload == FragenPhase.PAUSE) {
+			listener: (data) => {
+				if (data.payload.Phase == FragenPhase.RUNDE_1) {
+					this.revealSchaetzungen(data.payload.Room);
+				} else if (data.payload.Phase == FragenPhase.PAUSE) {
 					this.schaetzungen.clear();
 				}
 			}
@@ -42,52 +41,58 @@ export default class SchaetzungManager implements BasicManager {
 
 	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
 		socket
-			.on('GAME_MASTER_CONNECTING', () => this.gameMasterConnecting(socket, uuid))
 			.on('SCHAETZUNG_ABGEBEN', (schaetzung) => this.schaetzungAbgeben(uuid, schaetzung))
 			.on(
 				'PLAY_QUESTION',
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(question, hinweis_1, hinweis_2, answer, einheit) =>
-					(this.correctAnswer = Number.parseInt(answer))
+				(roomCode, question, hinweis_1, hinweis_2, answer, einheit) =>
+					this.correctAnswer.set(roomCode, Number.parseInt(answer))
 			)
-			.on('DRAW_WINNER', () => this.findWinner());
-	}
-
-	private gameMasterConnecting(socket: AppSocket, playerId: PlayerId): void {
-		this.gameMasterId = playerId;
-
-		socket.join('game-master');
+			.on('DRAW_WINNER', (roomCode) => this.findWinner(roomCode));
 	}
 
 	private schaetzungAbgeben(playerId: PlayerId, schaetzung: number): void {
-		this.schaetzungen.set(playerId, schaetzung);
+		let roomCode = this.playerManager.getRoomCodeByPlayerId(playerId);
 
-		this.server.to('game-master').emit('MEMBER_ISSUED_SCHAETZUNG', playerId, schaetzung);
+		let map = this.schaetzungen.get(roomCode) ?? new Map();
+		map.set(playerId, schaetzung);
+
+		this.schaetzungen.set(roomCode, map);
+
+		console.log('Schaetzung recieved:', schaetzung, playerId, roomCode);
+
+		this.server
+			.to('game-master-' + roomCode)
+			.emit('MEMBER_ISSUED_SCHAETZUNG', playerId, schaetzung);
 	}
 
-	private revealSchaetzungen(): void {
+	private revealSchaetzungen(roomCode: GameCode): void {
 		const currentlyPlayingClients = this.playerManager
-			.getPlayers()
+			.getPlayersByRoom(roomCode)
 			.filter((x) => x.status != MemberStatus.PLEITE)
 			.map((x) => x.playerId);
 
-		this.schaetzungen.forEach((schaetzung, clientId) => {
+		this.schaetzungen.get(roomCode)!.forEach((schaetzung, clientId) => {
 			this.server
+				.to(roomCode)
 				.except(currentlyPlayingClients)
 				.emit('MEMBER_ISSUED_SCHAETZUNG', clientId, schaetzung);
 		});
 	}
 
-	private findWinner(): void {
+	private findWinner(roomCode: GameCode): void {
 		if (this.correctAnswer === null) {
 			throw new Error('Keine Antwort um herauszufinden wer gewonnen hat!');
 		}
 
-		if (this.playerManager.getPlayingPlayers().length == 1) {
+		if (this.playerManager.getPlayingPlayers(roomCode).length == 1) {
 			this.eventBus.dispatch({
 				event: {
 					type: 'PLAYER-WON-ROUND',
-					payload: this.playerManager.getPlayingPlayers().map((x) => x.playerId)
+					payload: {
+						Room: roomCode,
+						Players: this.playerManager.getPlayingPlayers(roomCode).map((x) => x.playerId)
+					}
 				}
 			});
 			return;
@@ -96,7 +101,7 @@ export default class SchaetzungManager implements BasicManager {
 		let winnerIds: PlayerId[] = [];
 		let winnerNumber: number | null = null;
 
-		Array.from(this.schaetzungen.entries()).forEach((x) => {
+		Array.from((this.schaetzungen.get(roomCode) ?? new Map()).entries()).forEach((x) => {
 			if (this.playerManager.getPlayerByUuid(x[0]) == null) {
 				return;
 			}
@@ -111,8 +116,10 @@ export default class SchaetzungManager implements BasicManager {
 				return;
 			}
 
-			let differenzeWinner = winnerNumber - this.correctAnswer!;
-			let differenzeActualPlayer = x[1] - this.correctAnswer!;
+			let correctAnswer = this.correctAnswer.get(roomCode);
+
+			let differenzeWinner = winnerNumber - correctAnswer!;
+			let differenzeActualPlayer = x[1] - correctAnswer!;
 
 			if (differenzeWinner < 0) {
 				differenzeWinner *= -1;
@@ -133,7 +140,7 @@ export default class SchaetzungManager implements BasicManager {
 		this.eventBus.dispatch({
 			event: {
 				type: 'PLAYER-WON-ROUND',
-				payload: winnerIds
+				payload: { Room: roomCode, Players: winnerIds }
 			}
 		});
 	}

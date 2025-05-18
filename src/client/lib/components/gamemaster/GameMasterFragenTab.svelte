@@ -4,6 +4,7 @@
 	import { ConfigType, type DataTableConfig } from '../datatable/DataTable.types';
 	import type { Frage } from '@client/lib/models/Frage';
 	import { App } from '@client/lib/services/GameManager';
+	import { gameCode } from '@client/lib/stores/GameStore';
 
 	const config: DataTableConfig<Frage>[] = [
 		{
@@ -49,6 +50,7 @@
 
 				App.getInstance().Socket.emit(
 					'PLAY_QUESTION',
+					$gameCode!,
 					frage.frage,
 					frage.hinweis_1,
 					frage.hinweis_2,
