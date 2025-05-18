@@ -57,6 +57,7 @@ export default class PlayerManager implements BasicManager {
 				callback(this.connectPlayer(socket, uuid, room, name, link))
 			)
 			.on('PUBLIC_CONNECTING', (roomCode) => {
+				this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), uuid]);
 				socket.join(roomCode);
 				this.historyManager.PublishHistory(socket, roomCode);
 			})
@@ -92,14 +93,14 @@ export default class PlayerManager implements BasicManager {
 			status: MemberStatus.ON
 		});
 
+		socket.join(roomCode);
+
 		this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), playerId]);
 
 		this.historyManager.PublishHistory(socket, roomCode);
 
 		this.chips.set(playerId, 10_000);
 		this.historyManager.SendAndSaveToHistory(roomCode, 'PLAYER_JOINED', playerId, name, link);
-
-		socket.join(roomCode);
 
 		return playerId;
 	}
