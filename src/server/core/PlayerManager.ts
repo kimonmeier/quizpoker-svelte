@@ -162,7 +162,8 @@ export default class PlayerManager implements BasicManager {
 				return roomCode;
 			}
 		}
-		throw new Error('Player not found in any room');
+		console.error('Player not found in any room, room "NO_ROOM" returned');
+		return 'NO_ROOM' as GameCode;
 	}
 
 	public resetFoldedPlayer(): void {}
