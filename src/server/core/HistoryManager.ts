@@ -37,7 +37,7 @@ export class HistoryManager implements BasicManager {
 		...args: unknown[]
 	) {
 		this.SaveToHistory(gameCode, ev, ...args);
-		this.connection.emit(ev, ...(args as any));
+		this.connection.to(gameCode).emit(ev, ...(args as any));
 	}
 
 	public SaveToHistory<Ev extends EventType>(gameCode: GameCode, ev: Ev, ...args: unknown[]) {

@@ -68,11 +68,15 @@
 			goto('play');
 		}
 
-		if ($page.url.searchParams.has('public')) {
+		if ($page.url.searchParams.has('public') && $page.url.searchParams.has('roomCode')) {
 			openConnection().then((isConnected) => {
 				if (!isConnected) {
 					return;
 				}
+
+				App.getInstance()
+					.Socket.timeout(1000)
+					.emit('PUBLIC_CONNECTING', $page.url.searchParams.get('roomCode') as GameCode);
 
 				$isLoggedIn = true;
 

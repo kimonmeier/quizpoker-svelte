@@ -56,6 +56,10 @@ export default class PlayerManager implements BasicManager {
 			.on('PLAYER_CONNECTING', (name, link, room, callback) =>
 				callback(this.connectPlayer(socket, uuid, room, name, link))
 			)
+			.on('PUBLIC_CONNECTING', (roomCode) => {
+				socket.join(roomCode);
+				this.historyManager.PublishHistory(socket, roomCode);
+			})
 			.on('FOLD', () => this.fold(uuid))
 			.on('UPDATE_PLAYER_CHIPS', (roomCode, playerId, chips) =>
 				this.adjustChips(roomCode, playerId, chips)
@@ -65,7 +69,7 @@ export default class PlayerManager implements BasicManager {
 
 				this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), uuid]);
 				this.historyManager.SendAndSaveToHistory(roomCode, 'GAMEMASTER_LOGIN', link);
-				
+
 				socket.join(roomCode);
 				socket.join('game-master-' + roomCode);
 

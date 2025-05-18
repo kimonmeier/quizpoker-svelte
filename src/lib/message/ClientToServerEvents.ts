@@ -15,6 +15,8 @@ export interface ClientToServerEvents {
 		callback: (playerId: PlayerId | undefined, gameCode: GameCode) => void
 	) => void;
 
+	PUBLIC_CONNECTING: (roomCode: GameCode) => void;
+
 	SCHAETZUNG_ABGEBEN: (schaetzung: number) => void;
 
 	RAISE: (bet: number) => void;
