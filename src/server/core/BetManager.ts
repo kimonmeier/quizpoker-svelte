@@ -57,8 +57,6 @@ export default class BetManager implements BasicManager {
 		const roomCode = this.playerManger.getRoomCodeByPlayerId(playerId);
 
 		this.historyManager.SendAndSaveToHistory(roomCode, 'SHOW_TOAST', playerId, MemberAction.FOLDED);
-
-		this.lastPlayer.set(roomCode, playerId);
 	}
 
 	private check(playerId: PlayerId): void {
