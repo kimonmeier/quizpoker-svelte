@@ -45,8 +45,16 @@ export default class SchaetzungManager implements BasicManager {
 			.on(
 				'PLAY_QUESTION',
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(roomCode, question, hinweis_1, hinweis_2, answer, einheit) =>
-					this.correctAnswer.set(roomCode, Number.parseInt(answer))
+				(
+					roomCode,
+					bigBlindPlayerId,
+					bigBlindAmount,
+					question,
+					hinweis_1,
+					hinweis_2,
+					answer,
+					einheit
+				) => this.correctAnswer.set(roomCode, Number.parseInt(answer))
 			)
 			.on('DRAW_WINNER', (roomCode) => this.findWinner(roomCode));
 	}
