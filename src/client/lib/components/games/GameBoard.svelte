@@ -39,14 +39,23 @@
 				{$gameStateStore.currentFrage.answer}
 			</Frage>
 		{/if}
-	{:else}
-		<div class="col-span-3 row-span-4 mx-5">
-			<iframe
-				id="twitch-chat"
-				src="https://chatis.is2511.com/v2/?channel=Soxeer&animate=true&size=1&font=5&shadow=3"
-				class="w-full h-full rounded-t-3xl"
-				title="Chat"
-			/>
-		</div>
 	{/if}
+
+	<div class="col-span-3 row-span-4 mx-5" class:hidden={$gameStateStore.currentFrage}>
+		<iframe
+			id="twitch-chat"
+			src="https://chatis.is2511.com/v2/?channel=Soxeer&animate=true&size=1&font=5&shadow=3"
+			class="w-full h-full rounded-t-3xl"
+			title="Chat"
+		/>
+	</div>
 </div>
+
+<style>
+	.hidden {
+		display: none;
+		width: 0;
+		height: 0;
+		position: absolute;
+	}
+</style>
