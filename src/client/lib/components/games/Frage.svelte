@@ -13,7 +13,9 @@
 	>
 		{title}
 	</div>
-	<div class="flex-grow flex flex-col justify-center items-center overflow-clip text-center px-3">
+	<div
+		class="flex-grow flex flex-col text-sm justify-center items-center overflow-clip text-center px-3"
+	>
 		<slot />
 	</div>
 </div>
