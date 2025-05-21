@@ -195,9 +195,7 @@ export class App {
 			return gameState;
 		});
 
-		if (phase != FragenPhase.PAUSE) {
-			get(soundEffectsStore).play();
-		}
+		get(soundEffectsStore).play();
 
 		if (phase == FragenPhase.ANTWORT) {
 			get(backgroundMusicStore).stop();
