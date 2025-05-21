@@ -31,6 +31,8 @@ export interface ClientToServerEvents {
 
 	PLAY_QUESTION: (
 		roomCode: GameCode,
+		bigBlindPlayerId: PlayerId,
+		bigBlindAmount: number,
 		question: string,
 		hinweis_1: string,
 		hinweis_2: string,

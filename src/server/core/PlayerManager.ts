@@ -102,6 +102,8 @@ export default class PlayerManager implements BasicManager {
 		this.chips.set(playerId, 10_000);
 		this.historyManager.SendAndSaveToHistory(roomCode, 'PLAYER_JOINED', playerId, name, link);
 
+		console.log('Player connected', playerId, roomCode, name);
+
 		return playerId;
 	}
 

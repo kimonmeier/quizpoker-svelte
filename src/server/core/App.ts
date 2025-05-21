@@ -78,6 +78,7 @@ export class App {
 			this.schaetzungManager.registerSocket(socket, userId);
 			this.controlsManager.registerSocket(socket, userId);
 			this.roundManager.registerSocket(socket, userId);
+			this.blindManager.registerSocket(socket, userId);
 		});
 
 		this.webSocket.listen(Deno.env.get('PORT') ?? 3000);

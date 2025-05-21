@@ -116,11 +116,16 @@ export default class BetManager implements BasicManager {
 	}
 
 	public getBetValues(userId: PlayerId): number {
+		console.log('Getting bet values for user', userId);
 		const roomCode = this.playerManger.getRoomCodeByPlayerId(userId);
 		const bets = this.bets.get(roomCode);
 		if (!bets) {
 			return 0;
 		}
+		console.log(
+			'User bets',
+			bets.filter((x) => x.player_id == userId)
+		);
 
 		return ArrayUtils.sumField(
 			bets.filter((x) => x.player_id == userId),
@@ -136,7 +141,6 @@ export default class BetManager implements BasicManager {
 
 		if (!this.bets.get(roomCode)) {
 			this.bets.set(roomCode, []);
-			return;
 		}
 
 		this.bets.get(roomCode)!.push(bet);

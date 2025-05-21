@@ -147,7 +147,7 @@ export class ControlsManager implements BasicManager {
 			room,
 			'GIVE_PLAYER_CONTROLS',
 			playerId,
-			this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getBigBlind(room)) + 50
+			this.betManager.getBetValues(lastPlayerId ?? this.blindManager.getLastBigBlind(room)!) + 50
 		);
 	}
 

@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { gameMasterFrage } from '@client/lib/stores/GameMasterStore';
+	import {
+		bigBlindAmount,
+		bigBlindPlayer,
+		gameMasterFrage
+	} from '@client/lib/stores/GameMasterStore';
 	import DataTable from '../datatable/DataTable.svelte';
 	import { ConfigType, type DataTableConfig } from '../datatable/DataTable.types';
 	import type { Frage } from '@client/lib/models/Frage';
@@ -48,9 +52,18 @@
 					throw new Error('Hinweis 1 fehlt');
 				}
 
+				if (!$bigBlindPlayer) {
+					throw new Error('Kein BigBlindPlayer gesetzt');
+				}
+
+				console.log('Big Blind Player', $bigBlindPlayer);
+				console.log('Big Blind Amount', $bigBlindAmount);
+
 				App.getInstance().Socket.emit(
 					'PLAY_QUESTION',
 					$gameCode!,
+					$bigBlindPlayer.id,
+					$bigBlindAmount,
 					frage.frage,
 					frage.hinweis_1,
 					frage.hinweis_2,

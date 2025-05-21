@@ -4,8 +4,13 @@
 	import { ArrayUtils } from '@poker-lib/utils/ArrayUtils';
 	import Select from '../select/Select.svelte';
 	import { App } from '@client/lib/services/GameManager';
-	import { gameMasterAutoChangePhase } from '@client/lib/stores/GameMasterStore';
+	import {
+		bigBlindAmount,
+		bigBlindPlayer,
+		gameMasterAutoChangePhase
+	} from '@client/lib/stores/GameMasterStore';
 	import { FragenPhase } from '@poker-lib/enums/FragenPhase';
+	import { playerStore } from '@client/lib/stores/PlayerStore';
 
 	function updatePhase() {
 		App.getInstance().Socket.emit('CHANGE_PHASE', $gameCode!, $gameStateStore.currentPhase);
@@ -17,6 +22,10 @@
 		}
 
 		App.getInstance().Socket.emit('DRAW_WINNER', $gameCode!);
+
+		$bigBlindAmount += 100;
+		$bigBlindPlayer =
+			$playerStore.at($playerStore.indexOf($bigBlindPlayer!) + 1) ?? $playerStore.at(0)!;
 	}
 
 	function toggelAutomaticPhaseChanging() {
@@ -65,6 +74,25 @@
 			type="checkbox"
 			bind:checked={$gameMasterAutoChangePhase}
 			on:blur={toggelAutomaticPhaseChanging}
+		/>
+	</GroupBox>
+	<GroupBox title="Big Blind">
+		<label for="bigBlindPlayer">Big Blind</label>
+		<Select
+			id="bigBlindPlayer"
+			class="bg-zinc-700 rounded-3xl p-2"
+			bind:value={$bigBlindPlayer}
+			allowEmpty={true}
+			items={$playerStore}
+			textColumn="name"
+		/>
+		<br />
+		<label for="bigBlindAmount">Big Blind Amount</label>
+		<input
+			id="bigBlindAmount"
+			type="number"
+			bind:value={$bigBlindAmount}
+			class="bg-zinc-700 rounded-3xl p-2"
 		/>
 	</GroupBox>
 </div>

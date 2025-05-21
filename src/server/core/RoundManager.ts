@@ -28,7 +28,7 @@ export class RoundManager implements BasicManager {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public registerSocket(socket: AppSocket, uuid: PlayerId): void {
 		socket
-			.on('PLAY_QUESTION', (roomCode, question, hinweis_1, hinweis_2, answer, einheit) =>
+			.on('PLAY_QUESTION', (roomCode, _, __, question, hinweis_1, hinweis_2, answer, einheit) =>
 				this.constructNewQuestion(roomCode, question, hinweis_1, hinweis_2, answer, einheit)
 			)
 			.on('CHANGE_PHASE', (roomCode, phase) => this.changePhase(roomCode, phase))

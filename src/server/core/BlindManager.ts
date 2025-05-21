@@ -1,19 +1,19 @@
 import type PlayerManager from './PlayerManager.ts';
 import type BetManager from './BetManager.ts';
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
-import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import type { BasicManager } from './BasicManager.ts';
+import type { AppSocket } from './App.ts';
 
-export class BlindManager {
+export class BlindManager implements BasicManager {
 	private static readonly BLIND_AMOUNT_INCREASE = 100;
 
 	private readonly playerManager: PlayerManager;
 	private readonly eventBus: QuizPokerEventBus;
 	private readonly betManager: BetManager;
 
-	private bigBlindPlayerId: Map<GameCode, PlayerId | null> = new Map();
-	private smallBlindPlayerId: Map<GameCode, PlayerId | null> = new Map();
 	private blindAmount: Map<GameCode, number> = new Map();
+	private lastBigBlind: Map<GameCode, PlayerId | null> = new Map();
 
 	public constructor(
 		eventBus: QuizPokerEventBus,
@@ -23,74 +23,56 @@ export class BlindManager {
 		this.eventBus = eventBus;
 		this.playerManager = playerManager;
 		this.betManager = betManager;
-
-		this.eventBus.registerToEvent({
-			event: 'PHASE-TRIGGERED',
-			listener: (event) => {
-				if (event.payload.Phase != FragenPhase.FRAGE) {
-					return;
-				}
-
-				this.shuffleBlinds(event.payload.Room);
-			}
-		});
 	}
 
-	private shuffleBlinds(room: GameCode): void {
-		this.blindAmount.set(
-			room,
-			this.blindAmount.get(room) ??
-				BlindManager.BLIND_AMOUNT_INCREASE + BlindManager.BLIND_AMOUNT_INCREASE
+	public registerSocket(socket: AppSocket, uuid: PlayerId) {
+		socket.on('PLAY_QUESTION', (roomCode, bigBlindPlayerId, bigBlindAmount) =>
+			this.setBlinds(bigBlindPlayerId, bigBlindAmount, roomCode)
 		);
+	}
 
+	private setBlinds(bigBlindPlayerId: PlayerId, bigBlindAmount: number, room: GameCode): void {
+		console.log('Setting blinds', bigBlindPlayerId, bigBlindAmount, room);
+		this.blindAmount.set(room, bigBlindAmount);
 		const playingPlayers = this.playerManager.getPlayingPlayers(room);
-		const bigBlindId = this.bigBlindPlayerId.get(room);
-		const smallBlindId = this.smallBlindPlayerId.get(room);
+		console.log('Playing players', playingPlayers);
 
-		if (bigBlindId == null && smallBlindId == null) {
-			this.bigBlindPlayerId.set(room, playingPlayers.at(1)!.playerId);
-			this.smallBlindPlayerId.set(room, playingPlayers.at(0)!.playerId);
-		} else {
-			const bigBlindIndex = playingPlayers.findIndex((x) => x.playerId == bigBlindId);
-			this.smallBlindPlayerId.set(room, bigBlindId ?? null);
+		const bigBlindPlayer = playingPlayers.find((player) => player.playerId === bigBlindPlayerId);
+		const bigBlindPlayerIndex = playingPlayers.indexOf(bigBlindPlayer!);
 
-			this.bigBlindPlayerId.set(
-				room,
-				(playingPlayers.at(bigBlindIndex + 1) ?? playingPlayers.at(0)!).playerId
-			);
+		let smallBlindPlayerIndex = bigBlindPlayerIndex - 1;
+		if (smallBlindPlayerIndex < 0) {
+			smallBlindPlayerIndex = playingPlayers.length - 1;
 		}
+		const smallBlindPlayer = playingPlayers[smallBlindPlayerIndex];
+
+		console.log('Small blind', smallBlindPlayer, this.blindAmount.get(room)! / 2);
+		console.log('Big blind', bigBlindPlayer, this.blindAmount.get(room)!);
 
 		this.betManager.addBet(room, {
-			bet: this.blindAmount.get(room) ?? 250 / 2,
-			player_id: this.smallBlindPlayerId.get(room)!
+			bet: this.blindAmount.get(room)! / 2,
+			player_id: smallBlindPlayer.playerId
 		});
 
 		this.betManager.addBet(room, {
-			bet: this.blindAmount.get(room) ?? 500,
-			player_id: this.bigBlindPlayerId.get(room)!
+			bet: this.blindAmount.get(room)!,
+			player_id: bigBlindPlayerId
 		});
+
+		this.lastBigBlind.set(room, bigBlindPlayerId);
 
 		this.eventBus.dispatch({
 			event: {
 				type: 'BIG-BLIND-SET',
 				payload: {
-					BigBlind: this.bigBlindPlayerId.get(room)!,
+					BigBlind: bigBlindPlayerId,
 					Room: room
 				}
 			}
 		});
 	}
 
-	public getBigBlind(room: GameCode): PlayerId {
-		return (
-			this.bigBlindPlayerId.get(room) ?? this.playerManager.getPlayingPlayers(room).at(1)!.playerId
-		);
-	}
-
-	public getSmallBlind(room: GameCode): PlayerId {
-		return (
-			this.smallBlindPlayerId.get(room) ??
-			this.playerManager.getPlayingPlayers(room).at(0)!.playerId
-		);
+	public getLastBigBlind(room: GameCode): PlayerId | null {
+		return this.lastBigBlind.get(room) ?? null;
 	}
 }
