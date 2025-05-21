@@ -34,4 +34,6 @@ export interface ServerToClientEvents {
 	CHANGE_GAME_PHASE: (phase: GamePhase) => void;
 
 	REPORT_VISIBILITY_CHANGED: (playerId: PlayerId, visible: boolean) => void;
+
+	SET_STREAMER_NAME: (name: string) => void;
 }

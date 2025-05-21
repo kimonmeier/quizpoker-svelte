@@ -3,6 +3,7 @@
 	import VodNinjaWrapper from '../cam/VodNinjaWrapper.svelte';
 	import { gamePot, gameStateStore } from '@client/lib/stores/GameStore';
 	import Frage from './Frage.svelte';
+	import { streamerName } from '@client/lib/stores/GameMasterStore';
 </script>
 
 <div class="w-full h-full grid grid-cols-3 grid-rows-5 gap-y-5 overflow-hidden py-5">
@@ -42,12 +43,14 @@
 	{/if}
 
 	<div class="col-span-3 row-span-4 mx-5" class:hidden={$gameStateStore.currentFrage}>
-		<iframe
-			id="twitch-chat"
-			src="https://chatis.is2511.com/v2/?channel=Soxeer&animate=true&size=1&font=5&shadow=3"
-			class="w-full h-full rounded-t-3xl"
-			title="Chat"
-		/>
+		{#if $streamerName}
+			<iframe
+				id="twitch-chat"
+				src="https://chatis.is2511.com/v2/?channel={$streamerName}&animate=true&size=1&font=5&shadow=3"
+				class="w-full h-full rounded-t-3xl"
+				title="Chat"
+			/>
+		{/if}
 	</div>
 </div>
 

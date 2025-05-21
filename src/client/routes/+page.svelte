@@ -33,7 +33,7 @@
 			if ($page.url.searchParams.has('gamemaster')) {
 				App.getInstance()
 					.Socket.timeout(1000)
-					.emit('GAME_MASTER_CONNECTING', link, (error, playerId, roomCode) => {
+					.emit('GAME_MASTER_CONNECTING', username, link, (error, playerId, roomCode) => {
 						currentPlayerId.set(playerId!);
 						isLoggedIn.set(true);
 						gameCode.set(roomCode);

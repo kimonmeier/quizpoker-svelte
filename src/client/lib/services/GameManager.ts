@@ -17,6 +17,7 @@ import type { ClientToServerEvents } from '@poker-lib/message/ClientToServerEven
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes';
 import type { MemberAction } from '@poker-lib/enums/MemberAction';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase';
+import { streamerName } from '../stores/GameMasterStore';
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -100,7 +101,10 @@ export class App {
 			.on('DISPLAY_NEXT_PHASE', (phase, value) => this.displayNextPhase(phase, value))
 			.on('REPORT_VISIBILITY_CHANGED', (playerId, visible) =>
 				playerStore.playerChangePage(playerId, visible)
-			);
+			)
+			.on('SET_STREAMER_NAME', (name) => {
+				streamerName.set(name);
+			});
 
 		socket.io.on('reconnect', (attempt) =>
 			console.log(`Attempt to reconnect for the ${attempt} time!`)

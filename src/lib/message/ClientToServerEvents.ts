@@ -11,6 +11,7 @@ export interface ClientToServerEvents {
 	) => void;
 
 	GAME_MASTER_CONNECTING: (
+		twitchname: string,
 		link: string,
 		callback: (playerId: PlayerId | undefined, gameCode: GameCode) => void
 	) => void;

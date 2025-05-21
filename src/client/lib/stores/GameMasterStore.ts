@@ -8,3 +8,4 @@ export const gameMasterAutoChangePhase = writable<boolean>(true);
 export const playerPageEvents = writable<PageEvent[]>([]);
 export const bigBlindPlayer = writable<PlayerModel | null>(null);
 export const bigBlindAmount = writable<number>(0);
+export const streamerName = writable<string | null>(null);

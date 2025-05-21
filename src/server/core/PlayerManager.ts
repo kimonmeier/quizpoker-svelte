@@ -65,11 +65,12 @@ export default class PlayerManager implements BasicManager {
 			.on('UPDATE_PLAYER_CHIPS', (roomCode, playerId, chips) =>
 				this.adjustChips(roomCode, playerId, chips)
 			)
-			.on('GAME_MASTER_CONNECTING', (link, callback) => {
+			.on('GAME_MASTER_CONNECTING', (twitchName, link, callback) => {
 				const roomCode = StringHelper.generateRandomString(12) as GameCode;
 
 				this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), uuid]);
 				this.historyManager.SendAndSaveToHistory(roomCode, 'GAMEMASTER_LOGIN', link);
+				this.historyManager.SendAndSaveToHistory(roomCode, 'SET_STREAMER_NAME', twitchName);
 
 				socket.join(roomCode);
 				socket.join('game-master-' + roomCode);
