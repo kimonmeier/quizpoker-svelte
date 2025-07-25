@@ -107,7 +107,12 @@
 	let minimumBetSubscriber: Unsubscriber | undefined = undefined;
 
 	onMount(() => {
-		minimumBetSubscriber = minimumBet.subscribe((bet) => (raiseTo = bet));
+		minimumBetSubscriber = minimumBet.subscribe((bet) => {
+			if (raiseTo >= bet) {
+				return;
+			}
+			raiseTo = bet;
+		});
 	});
 
 	onDestroy(() => {
