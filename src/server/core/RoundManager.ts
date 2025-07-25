@@ -1,5 +1,4 @@
 import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
-import type PlayerManager from './PlayerManager.ts';
 import type { Frage } from '@server/entities/Frage.ts';
 import type { HistoryManager } from './HistoryManager.ts';
 import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
@@ -57,7 +56,7 @@ export class RoundManager implements BasicManager {
 	}
 
 	private changePhase(roomCode: GameCode, phase: FragenPhase): void {
-		var currentFrage = this.frage.get(roomCode);
+		const currentFrage = this.frage.get(roomCode);
 
 		if (currentFrage == null) {
 			throw new Error('No Frage found for this room');
@@ -138,8 +137,8 @@ export class RoundManager implements BasicManager {
 			return;
 		}
 
-		let currentFrage = this.frage.get(roomCode);
-		let currentPhase = this.currentPhase.get(roomCode);
+		const currentFrage = this.frage.get(roomCode);
+		const currentPhase = this.currentPhase.get(roomCode);
 
 		let nextPhase: FragenPhase;
 		let value: string | undefined = undefined;

@@ -6,6 +6,7 @@ import { FragenPhase } from '@poker-lib/enums/FragenPhase.ts';
 import type { BasicManager } from './BasicManager.ts';
 import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { AppServer, AppSocket } from './App.ts';
+import { PUBLIC_ROOM_CODE } from './Konst.ts';
 
 export default class SchaetzungManager implements BasicManager {
 	private readonly historyManager: HistoryManager;
@@ -44,25 +45,22 @@ export default class SchaetzungManager implements BasicManager {
 			.on('SCHAETZUNG_ABGEBEN', (schaetzung) => this.schaetzungAbgeben(uuid, schaetzung))
 			.on(
 				'PLAY_QUESTION',
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(
-					roomCode,
-					bigBlindPlayerId,
-					bigBlindAmount,
-					question,
-					hinweis_1,
-					hinweis_2,
-					answer,
-					einheit
-				) => this.correctAnswer.set(roomCode, Number.parseInt(answer))
+				(roomCode, bigBlindPlayerId, bigBlindAmount, question, hinweis_1, hinweis_2, answer) =>
+					this.correctAnswer.set(roomCode, Number.parseInt(answer))
 			)
-			.on('DRAW_WINNER', (roomCode) => this.findWinner(roomCode));
+			.on('DRAW_WINNER', (roomCode) => this.findWinner(roomCode))
+			.on('GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_CROWD', (roomCode) =>
+				this.revealSchaetzungen(roomCode)
+			)
+			.on('GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_PLAYERS', (roomCode, playerId) =>
+				this.revealSchaetzungenToPlayers(roomCode, playerId)
+			);
 	}
 
 	private schaetzungAbgeben(playerId: PlayerId, schaetzung: number): void {
-		let roomCode = this.playerManager.getRoomCodeByPlayerId(playerId);
+		const roomCode = this.playerManager.getRoomCodeByPlayerId(playerId);
 
-		let map = this.schaetzungen.get(roomCode) ?? new Map();
+		const map = this.schaetzungen.get(roomCode) ?? new Map();
 		map.set(playerId, schaetzung);
 
 		this.schaetzungen.set(roomCode, map);
@@ -75,17 +73,22 @@ export default class SchaetzungManager implements BasicManager {
 	}
 
 	private revealSchaetzungen(roomCode: GameCode): void {
-		const currentlyPlayingClients = this.playerManager
-			.getPlayersByRoom(roomCode)
-			.filter((x) => x.status != MemberStatus.PLEITE)
-			.map((x) => x.playerId);
-
 		this.schaetzungen.get(roomCode)!.forEach((schaetzung, clientId) => {
 			this.server
 				.to(roomCode)
-				.except(currentlyPlayingClients)
+				.to(PUBLIC_ROOM_CODE)
 				.emit('MEMBER_ISSUED_SCHAETZUNG', clientId, schaetzung);
 		});
+	}
+
+	private revealSchaetzungenToPlayers(roomCode: GameCode, playerId: PlayerId): void {
+		const schaetzung = this.schaetzungen.get(roomCode)!.get(playerId);
+
+		if (schaetzung == null) {
+			throw new Error('No schaetzung found for player: ' + playerId);
+		}
+
+		this.server.to(roomCode).emit('MEMBER_ISSUED_SCHAETZUNG', playerId, schaetzung);
 	}
 
 	private findWinner(roomCode: GameCode): void {
@@ -124,7 +127,7 @@ export default class SchaetzungManager implements BasicManager {
 				return;
 			}
 
-			let correctAnswer = this.correctAnswer.get(roomCode);
+			const correctAnswer = this.correctAnswer.get(roomCode);
 
 			let differenzeWinner = winnerNumber - correctAnswer!;
 			let differenzeActualPlayer = x[1] - correctAnswer!;

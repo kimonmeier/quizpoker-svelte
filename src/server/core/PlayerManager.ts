@@ -5,19 +5,26 @@ import type { QuizPokerEventBus } from '@server/eventbus/Events.ts';
 import type { HistoryManager } from './HistoryManager.ts';
 import type { GameCode, PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
 import type { BasicManager } from './BasicManager.ts';
-import type { AppSocket } from './App.ts';
+import type { AppServer, AppSocket } from './App.ts';
+import { PUBLIC_ROOM_CODE } from './Konst.ts';
 
 export default class PlayerManager implements BasicManager {
 	private readonly historyManager: HistoryManager;
 	private readonly eventBus: QuizPokerEventBus;
+	private readonly server: AppServer;
 
 	private players: Map<PlayerId, Player> = new Map();
 	private rooms: Map<GameCode, PlayerId[]> = new Map();
 	private chips: Map<string, number> = new Map();
 
-	public constructor(historyManager: HistoryManager, eventBus: QuizPokerEventBus) {
+	public constructor(
+		historyManager: HistoryManager,
+		eventBus: QuizPokerEventBus,
+		server: AppServer
+	) {
 		this.historyManager = historyManager;
 		this.eventBus = eventBus;
+		this.server = server;
 
 		this.eventBus.registerToEvent({
 			event: 'NEXT-QUESTION',
@@ -33,7 +40,9 @@ export default class PlayerManager implements BasicManager {
 					const chips = this.getChips(player.playerId);
 					if (chips == 0) {
 						player.status = MemberStatus.PLEITE;
+						this.server.in(player.playerId).socketsJoin(PUBLIC_ROOM_CODE);
 					} else {
+						this.server.in(player.playerId).socketsLeave(PUBLIC_ROOM_CODE);
 						player.status = MemberStatus.ON;
 					}
 
@@ -95,6 +104,7 @@ export default class PlayerManager implements BasicManager {
 		});
 
 		socket.join(roomCode);
+		socket.leave(PUBLIC_ROOM_CODE);
 
 		this.rooms.set(roomCode, [...(this.rooms.get(roomCode) ?? []), playerId]);
 
@@ -109,7 +119,7 @@ export default class PlayerManager implements BasicManager {
 	}
 
 	private disconnectPlayer(playerId: PlayerId): void {
-		var gameRoomCode: GameCode;
+		let gameRoomCode: GameCode;
 		this.rooms.forEach((playerIds, roomCode) => {
 			if (playerIds.includes(playerId)) {
 				this.rooms.set(
@@ -168,8 +178,6 @@ export default class PlayerManager implements BasicManager {
 		console.error('Player not found in any room, room "NO_ROOM" returned');
 		return 'NO_ROOM' as GameCode;
 	}
-
-	public resetFoldedPlayer(): void {}
 
 	private comparePlayerFn(player1: Player, player2: Player): number {
 		return StringHelper.hashCode(player1.playerId) - StringHelper.hashCode(player2.playerId);

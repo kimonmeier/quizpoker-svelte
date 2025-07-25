@@ -12,6 +12,7 @@ import type { ServerToClientEvents } from '@poker-lib/message/ServerToClientEven
 import { HistoryManager } from './HistoryManager.ts';
 import { randomUUID } from 'node:crypto';
 import type { PlayerId } from '@poker-lib/message/OpaqueTypes.ts';
+import { PUBLIC_ROOM_CODE } from './Konst.ts';
 
 export type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, object>;
 export type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, object>;
@@ -36,7 +37,7 @@ export class App {
 		});
 		this.historyManager = new HistoryManager(this.webSocket);
 
-		this.playerManager = new PlayerManager(this.historyManager, this.eventBus);
+		this.playerManager = new PlayerManager(this.historyManager, this.eventBus, this.webSocket);
 		this.betManager = new BetManager(this.historyManager, this.eventBus, this.playerManager);
 		this.blindManager = new BlindManager(this.eventBus, this.playerManager, this.betManager);
 
@@ -67,6 +68,7 @@ export class App {
 		this.webSocket.on('connect', async (socket) => {
 			const userId = randomUUID() as PlayerId;
 			socket.join(userId);
+			socket.join(PUBLIC_ROOM_CODE);
 
 			socket.on('disconnect', (reason) => {
 				console.log('Player disconnected because: ', reason);

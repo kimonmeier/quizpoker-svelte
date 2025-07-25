@@ -22,6 +22,14 @@
 		App.getInstance().Socket.emit('GIVE_PLAYER_CONTROLS', $gameCode!, playerId);
 	}
 
+	function revealSchaetzung(): void {
+		App.getInstance().Socket.emit(
+			'GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_PLAYERS',
+			$gameCode!,
+			playerId
+		);
+	}
+
 	$: currentPlayer = $playerStore.find((x) => x.id == playerId);
 	$: playerHasControl = $playerWhichHasControl == playerId;
 	$: schaetzung = $schaetzungStore.find((x) => x.playerId == playerId);
@@ -59,4 +67,11 @@
 		bind:value={currentBet}
 		on:blur={betChanged}
 	/>
+	<button
+		class="bg-blue-400 rounded-3xl p-3"
+		on:click={revealSchaetzung}
+		disabled={!schaetzung || !schaetzung.schaetzung}
+	>
+		Schätzung aufdecken
+	</button>
 </div>

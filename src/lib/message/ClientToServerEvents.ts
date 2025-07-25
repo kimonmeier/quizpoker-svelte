@@ -54,4 +54,8 @@ export interface ClientToServerEvents {
 	CHANGE_AUTOMATIC_PHASE_CHANGING: (roomCode: GameCode, activated: boolean) => void;
 
 	REPORT_VISIBILITY_CHANGED: (visible: boolean) => void;
+
+	GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_CROWD: (roomCode: GameCode) => void;
+
+	GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_PLAYERS: (roomCode: GameCode, playerId: PlayerId) => void;
 }

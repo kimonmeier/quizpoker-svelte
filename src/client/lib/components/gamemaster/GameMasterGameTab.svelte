@@ -28,6 +28,10 @@
 			$playerStore.at($playerStore.indexOf($bigBlindPlayer!) + 1) ?? $playerStore.at(0)!;
 	}
 
+	function revealSchaetzungenToCrowd() {
+		App.getInstance().Socket.emit('GAME_MASTER_REVEAL_SCHAETZUNGEN_TO_CROWD', $gameCode!);
+	}
+
 	function toggelAutomaticPhaseChanging() {
 		App.getInstance().Socket.emit(
 			'CHANGE_AUTOMATIC_PHASE_CHANGING',
@@ -94,5 +98,14 @@
 			bind:value={$bigBlindAmount}
 			class="bg-zinc-700 rounded-3xl p-2"
 		/>
+	</GroupBox>
+	<GroupBox title="Generelle Aktionen">
+		<button
+			class="rounded-full border border-black bg-green-400"
+			on:click={revealSchaetzungenToCrowd}
+		>
+			Schätzungen der Crowd zeigen
+		</button>
+		<br />
 	</GroupBox>
 </div>

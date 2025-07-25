@@ -25,6 +25,7 @@ export class BlindManager implements BasicManager {
 		this.betManager = betManager;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public registerSocket(socket: AppSocket, uuid: PlayerId) {
 		socket.on('PLAY_QUESTION', (roomCode, bigBlindPlayerId, bigBlindAmount) =>
 			this.setBlinds(bigBlindPlayerId, bigBlindAmount, roomCode)
