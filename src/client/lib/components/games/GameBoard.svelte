@@ -20,7 +20,7 @@
 		<Frage title="Frage">
 			{$gameStateStore.currentFrage.frage}
 			{#if $gameStateStore.currentFrage.einheit}
-				<div class="text-xs text-gray-400 font-bold">
+				<div class="text-sm text-gray-400 font-bold">
 					Antwort in {$gameStateStore.currentFrage.einheit}
 				</div>
 			{/if}
