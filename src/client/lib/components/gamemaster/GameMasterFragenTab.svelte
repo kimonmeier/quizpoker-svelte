@@ -2,6 +2,7 @@
 	import {
 		bigBlindAmount,
 		bigBlindPlayer,
+		currentGameMasterFrage,
 		gameMasterFrage
 	} from '@client/lib/stores/GameMasterStore';
 	import DataTable from '../datatable/DataTable.svelte';
@@ -58,6 +59,8 @@
 
 				console.log('Big Blind Player', $bigBlindPlayer);
 				console.log('Big Blind Amount', $bigBlindAmount);
+
+				$currentGameMasterFrage = frage;
 
 				App.getInstance().Socket.emit(
 					'PLAY_QUESTION',

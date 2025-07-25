@@ -5,6 +5,7 @@ import type { PlayerModel } from '../models/Player';
 
 export const gameMasterFrage = writable<Frage[]>([]);
 export const gameMasterAutoChangePhase = writable<boolean>(true);
+export const currentGameMasterFrage = writable<Frage | null>(null);
 export const playerPageEvents = writable<PageEvent[]>([]);
 export const bigBlindPlayer = writable<PlayerModel | null>(null);
 export const bigBlindAmount = writable<number>(0);
