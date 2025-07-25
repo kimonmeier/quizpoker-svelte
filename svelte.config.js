@@ -16,6 +16,7 @@ const config = {
 		files: {
 			lib: 'src/client/lib',
 			routes: 'src/client/routes',
+			assets: 'src/client/static',
 			appTemplate: 'src/client/app.html',
 			errorTemplate: 'src/client/error.html'
 		}
