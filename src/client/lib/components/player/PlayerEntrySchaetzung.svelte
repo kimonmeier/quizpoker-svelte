@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Schaetzung } from '@client/lib/models/Schaetzung';
 	import { currentGameMasterFrage } from '@client/lib/stores/GameMasterStore';
+	import { gameStateStore } from '@client/lib/stores/GameStore';
 	import { playerStore } from '@client/lib/stores/PlayerStore';
 	import { schaetzungStore } from '@client/lib/stores/SchaetzungenStore';
 	import { MemberStatus } from '@poker-lib/enums/MemberStatus';
@@ -10,11 +11,11 @@
 	export let schaetzung: Schaetzung | undefined;
 
 	function isClosestToAnswer(): boolean {
-		if (!schaetzung?.schaetzung || !$currentGameMasterFrage?.answer || !$schaetzungStore) {
+		if (!schaetzung?.schaetzung || !$gameStateStore.currentFrage?.answer || !$schaetzungStore) {
 			return false;
 		}
 
-		const correctAnswer = Number.parseInt($currentGameMasterFrage.answer);
+		const correctAnswer = Number.parseInt($gameStateStore.currentFrage.answer);
 
 		const allSchaetzungen = $schaetzungStore;
 
