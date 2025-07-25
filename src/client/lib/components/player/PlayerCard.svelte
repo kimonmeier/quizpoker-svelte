@@ -19,7 +19,7 @@
 <div
 	class="{className} {hasControl
 		? 'pulseCam'
-		: ''} flex flex-col rounded-3xl rounded-b-2xl border-8 border-[#1e699c] m-24 my-auto shadow-lg shadow-black text-lg relative"
+		: ''} flex flex-col rounded-3xl rounded-b-2xl border-8 border-[#1e699c] m-24 my-auto shadow-lg shadow-black text-xl relative"
 >
 	<PlayerName name={player.name} />
 	<PlayerToast {toast} />

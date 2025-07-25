@@ -73,10 +73,15 @@ export default class SchaetzungManager implements BasicManager {
 	}
 
 	private revealSchaetzungen(roomCode: GameCode): void {
+		const currentlyPlayingClients = this.playerManager
+			.getPlayersByRoom(roomCode)
+			.filter((x) => x.status != MemberStatus.PLEITE)
+			.map((x) => x.playerId);
+
 		this.schaetzungen.get(roomCode)!.forEach((schaetzung, clientId) => {
 			this.server
 				.to(roomCode)
-				.to(PUBLIC_ROOM_CODE)
+				.except(currentlyPlayingClients)
 				.emit('MEMBER_ISSUED_SCHAETZUNG', clientId, schaetzung);
 		});
 	}

@@ -51,6 +51,13 @@
 	></button>
 	<div class="flex-grow font-bold">{currentPlayer?.name ?? 'Spieler'}</div>
 	<div class="flex-grow font-bold">{schaetzung?.schaetzung?.toLocaleString() ?? 'Schätzung'}</div>
+	<button
+		class="bg-blue-400 rounded-3xl my-1"
+		on:click={revealSchaetzung}
+		disabled={!schaetzung || !schaetzung.schaetzung}
+	>
+		Aufdecken
+	</button>
 	<button class="w-10 h-10 {currentPlayer?.isOnPage ? 'bg-green-500' : 'bg-red-500'} rounded-3xl"
 	></button>
 	<div>Chips</div>
@@ -67,11 +74,4 @@
 		bind:value={currentBet}
 		on:blur={betChanged}
 	/>
-	<button
-		class="bg-blue-400 rounded-3xl p-3"
-		on:click={revealSchaetzung}
-		disabled={!schaetzung || !schaetzung.schaetzung}
-	>
-		Schätzung aufdecken
-	</button>
 </div>

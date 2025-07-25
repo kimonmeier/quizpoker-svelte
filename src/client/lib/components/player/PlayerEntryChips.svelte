@@ -13,8 +13,8 @@
 	class="{className} flex flex-row h-full {isAllIn
 		? 'bg-yellow-500'
 		: isPleite
-			? 'bg-red-400'
-			: 'bg-gray-500'} text-right rounded-xl items-center px-2 shadow-sm shadow-black {isPleite
+			? 'bg-red-500'
+			: 'bg-gray-500'} text-right rounded-xl items-center px-2 shadow-md shadow-slate-700 {isPleite
 		? 'col-span-3'
 		: ''}"
 >

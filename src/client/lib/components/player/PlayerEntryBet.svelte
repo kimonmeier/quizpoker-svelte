@@ -8,9 +8,9 @@
 </script>
 
 <div
-	class="flex flex-row rounded-lg h-full {memberStatus == MemberStatus.ON
-		? 'bg-green-400'
-		: 'bg-red-400'} items-center pr-2 justify-center shadow-sm shadow-black"
+	class="flex flex-row rounded-lg h-full text-white {memberStatus == MemberStatus.ON
+		? 'bg-pink-500'
+		: 'bg-red-500'} items-center pr-2 justify-center shadow-md shadow-slate-700"
 >
 	<div class="flex-grow text-center">
 		{#if memberStatus == MemberStatus.ON}

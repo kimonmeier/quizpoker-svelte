@@ -114,6 +114,7 @@ export default class PlayerManager implements BasicManager {
 		this.historyManager.SendAndSaveToHistory(roomCode, 'PLAYER_JOINED', playerId, name, link);
 
 		console.log('Player connected', playerId, roomCode, name);
+		console.log('Rooms:', socket.rooms);
 
 		return playerId;
 	}
